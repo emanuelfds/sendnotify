@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: de-sendnotify
-  namespace: monitoring
+  namespace: obsevability
 spec:
   selector:
     matchLabels:
