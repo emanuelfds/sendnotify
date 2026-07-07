@@ -1,76 +1,168 @@
-# OCI Send Notify
+<div align="center">
 
-App que recebe alertas de várias nuvens (**OCI**, **AWS**, **Azure**) e envia para o **Google Chat**.
+# Send Notify
+
+[![Python](https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white)](https://python.org)
+[![Flask](https://img.shields.io/badge/Flask-2.3-blue?logo=flask&logoColor=white)](https://flask.palletsprojects.com)
+[![Docker](https://img.shields.io/badge/Docker-Alpine-0db7ed?logo=docker&logoColor=white)](https://docker.com)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-1.28+-326CE5?logo=kubernetes&logoColor=white)](https://kubernetes.io)
+[![OCI](https://img.shields.io/badge/OCI-F80000?logo=oracle&logoColor=white)](https://oracle.com/cloud)
+[![AWS](https://img.shields.io/badge/AWS-FF9900?logo=amazonaws&logoColor=white)](https://aws.amazon.com)
+[![Azure](https://img.shields.io/badge/Azure-0078D4?logo=microsoftazure&logoColor=white)](https://azure.microsoft.com)
+[![Google Chat](https://img.shields.io/badge/Google_Chat-34A853?logo=googlechat&logoColor=white)](https://chat.google.com)
+[![License](https://img.shields.io/badge/License-MIT-green?logo=opensourceinitiative&logoColor=white)](LICENSE)
+
+</div>
 
 ## Sumário
 
-- [Como funciona](#como-funciona)
-- [Pré-requisitos](#pré-requisitos)
-- [Testar localmente (passo a passo)](#testar-localmente-passo-a-passo)
-- [Provider OCI](#provider-oci)
-- [Provider AWS](#provider-aws)
-- [Provider Azure](#provider-azure)
-- [Endpoint /send (teste rápido)](#endpoint-send-teste-rápido)
-- [Testar com Docker](#testar-com-docker)
-- [Deploy no Kubernetes](#deploy-no-kubernetes)
-- [Arquitetura do código](#arquitetura-do-código)
-- [Adicionar um novo provider](#adicionar-um-novo-provider)
+- [🎯 Visão Geral](#-visão-geral)
+- [⚙️ Funcionalidades](#️-funcionalidades)
+- [🏗️ Fluxo](#️-fluxo)
+- [📁 Estrutura do Projeto](#-estrutura-do-projeto)
+- [💻 Pré-requisitos](#-pré-requisitos)
+- [🚀 Testar Localmente (passo a passo)](#-testar-localmente-passo-a-passo)
+- [☁️ Providers](#️-providers)
+  - [OCI Monitoring](#oci-monitoring)
+  - [AWS CloudWatch](#aws-cloudwatch)
+  - [Azure Monitor](#azure-monitor)
+- [🐳 Testar com Docker](#-testar-com-docker)
+- [☸️ Deploy no Kubernetes](#️-deploy-no-kubernetes)
+- [🧪 Testar com Mocks](#-testar-com-mocks)
+- [🛠️ Troubleshooting](#️-troubleshooting)
+- [📬 Endpoints](#-endpoints)
 
 ---
 
-## Como funciona
+## 🎯 Visão Geral
+
+**Send Notify** é um webhook bridge **multi-cloud** que recebe alertas de **OCI Monitoring**, **AWS CloudWatch** e **Azure Monitor** e os encaminha para o **Google Chat**.
+
+A aplicação **detecta automaticamente** qual nuvem enviou o alerta, normaliza o payload e formata a mensagem com emojis e estrutura adequada para cada status (`FIRING` / `RESOLVED`).
+
+<div align="right">[⬆️ Voltar ao topo](#send-notify)</div>
+
+---
+
+## ⚙️ Funcionalidades
+
+| Funcionalidade | Status |
+|---|---|
+| Suporte OCI Monitoring | ✅ |
+| Suporte AWS CloudWatch (via SNS) | ✅ |
+| Suporte Azure Monitor | ✅ |
+| Auto-detect do provider pelo payload | ✅ |
+| Confirmação automática de subscription | ✅ |
+| Autenticação Basic Auth via Secret | ✅ |
+| Health check (/health) | ✅ |
+| Endpoint de teste (/send) | ✅ |
+| Probes Kubernetes (liveness + readiness) | ✅ |
+| Node affinity para nós services | ✅ |
+| Testes offline com mocks | ✅ |
+| Pronto para Docker | ✅ |
+
+<div align="right">[⬆️ Voltar ao topo](#send-notify)</div>
+
+---
+
+## 🏗️ Fluxo
 
 ```
-Alarme (OCI/AWS/Azure) → Tópico → Subscription HTTP → esta app → Google Chat
+┌──────────────┐     ┌──────────┐     ┌──────────────────┐     ┌──────────────┐
+│  OCI / AWS   │ ──▶ │  Tópico  │ ──▶ │  Subscription    │ ──▶ │  Google Chat │
+│  / Azure     │     │ (SNS)    │     │  HTTP → esta app │     │  (Webhook)   │
+└──────────────┘     └──────────┘     └──────────────────┘     └──────────────┘
+                                              │
+                                        ┌─────┴─────┐
+                                        │  detect() │ ← identifica OCI / AWS / Azure
+                                        ├───────────┤
+                                        │ normalize │ ← traduz para formato único
+                                        └─────┬─────┘
+                                              │
+                                   ┌──────────┴──────────┐
+                                   │                     │
+                            ├─ confirmation_url    ── sem título
+                            │   → GET na URL        → 400
+                            │   → "Subscription
+                            │     confirmed"
+                                   │
+                            ── envia para o Google Chat
 ```
 
-A app:
-1. Recebe um POST no `/subscription`
-2. **Detecta automaticamente** qual nuvem enviou (OCI, AWS ou Azure)
-3. Normaliza o payload para um formato único
-4. Monta a mensagem e envia para o Google Chat
-
-### Suporte por nuvem
-
-| Nuvem | Serviço | Confirmação subscription | Status FIRING | Status RESOLVED |
-|---|---|---|---|---|
-| **OCI** | Monitoring | `ConfirmationURL` | `FIRING` | `OK` → RESOLVED |
-| **AWS** | CloudWatch via SNS | `SubscribeURL` | `ALARM` → FIRING | `OK` → RESOLVED |
-| **Azure** | Monitor | — | `Fired` → FIRING | `Resolved` → RESOLVED |
+<div align="right">[⬆️ Voltar ao topo](#send-notify)</div>
 
 ---
 
-## Pré-requisitos
+## 📁 Estrutura do Projeto
 
-- **Python 3.10+** instalado
-- **curl** (para testar os endpoints)
-- Um **webhook do Google Chat** (como criar: abra o Google Chat → espaço → Gerenciar webhooks)
+```
+oci-send-notify/
+│
+├── build/                          # Código fonte e imagem
+│   ├── main.py                     # App Flask (endpoints /subscription, /send, /health)
+│   ├── wsgi.py                     # Entrypoint para gunicorn
+│   ├── app.py                      # Atalho para python app.py
+│   ├── requirements.txt            # Dependências
+│   ├── Dockerfile                  # Imagem Docker (python:3.10-alpine)
+│   │
+│   ├── providers/                  # Normalizadores multi-cloud
+│   │   ├── __init__.py             # Registry + auto-detect
+│   │   ├── oci.py                  # OCI Monitoring
+│   │   ├── aws.py                  # AWS CloudWatch via SNS
+│   │   └── azure.py                # Azure Monitor
+│   │
+│   └── tests/                      # Testes com mocks offline
+│       ├── test_providers.py       # Script de validação
+│       └── samples/                # 8 payloads mock de exemplo
+│
+├── artifacts/                      # Manifestos Kubernetes
+│   ├── 01-sendnotify-rbac.yaml       # ServiceAccount + ClusterRole + Binding
+│   ├── 02-sendnotify-configmap.yaml  # TZ, CLOUD, CLOUDID
+│   ├── 03-sendnotify-secret.yaml     # Template da Secret (NÃO commit com creds reais)
+│   ├── 04-sendnotify-service.yaml    # Service (headless)
+│   ├── 05-sendnotify-deployment.yaml # Deployment com probes + affinity
+│   └── 06-sendnotify-ingress.yaml    # Ingress com TLS
+│
+├── .gitignore
+└── README.md
+```
+
+<div align="right">[⬆️ Voltar ao topo](#send-notify)</div>
 
 ---
 
-## Testar localmente (passo a passo)
+## 💻 Pré-requisitos
 
-### 1. Baixe o projeto
+- **Python 3.10+**
+- **curl**
+- **Docker** (opcional, para teste com container)
+- **kubectl** (opcional, para deploy no Kubernetes)
+- Um **webhook do Google Chat** ([como criar](https://developers.google.com/chat/how-tos/webhooks))
+
+<div align="right">[⬆️ Voltar ao topo](#send-notify)</div>
+
+---
+
+## 🚀 Testar Localmente (passo a passo)
+
+> Instruções para quem nunca usou Python.
+
+### 1. Clone o repositório
 
 ```bash
-cd /caminho/onde/baixou/oci-send-notify
+cd /caminho/do/oci-send-notify
 ```
 
-### 2. Crie um ambiente virtual Python
+### 2. Crie o ambiente virtual
 
-Isola as dependências do projeto para não afetar o sistema:
+IsoIa as dependências do projeto:
 
 ```bash
 python3 -m venv .venv
-```
-
-Ative o ambiente:
-
-```bash
 source .venv/bin/activate
 ```
 
-Você deve ver `(.venv)` no início do terminal.
+Você verá `(.venv)` no início do terminal.
 
 ### 3. Instale as dependências
 
@@ -78,25 +170,22 @@ Você deve ver `(.venv)` no início do terminal.
 pip install -r build/requirements.txt
 ```
 
-A saída deve mostrar a instalação dos pacotes: Flask, requests, gunicorn etc.
-
 ### 4. Configure as variáveis de ambiente
-
-Defina as credenciais e o webhook. O `AUTH_admin` e `AUTH_user` são os usuários que vão autenticar no endpoint:
 
 ```bash
 export AUTH_admin=secret
 export AUTH_user=password
-export WEBHOOK='URL_DO_SEU_WEBHOOK_DO_GOOGLE_CHAT'
+export WEBHOOK='https://chat.googleapis.com/v1/spaces/SEU_SPACE/messages?key=SEU_KEY&token=SEU_TOKEN'
 export CLOUDID=MinhaEmpresa
 ```
 
-> **Dica**: para não digitar toda vez, crie um arquivo `.env` (ele não será versionado):
+> 💡 **Dica**: crie um arquivo `.env` (não versionado) para não digitar toda vez:
+>
 > ```bash
 > cat > .env << 'EOF'
 > export AUTH_admin=secret
 > export AUTH_user=password
-> export WEBHOOK='https://chat.googleapis.com/v1/spaces/SEU_SPACE/messages?key=SEU_KEY&token=SEU_TOKEN'
+> export WEBHOOK='URL_DO_WEBHOOK'
 > export CLOUDID=MinhaEmpresa
 > EOF
 > source .env
@@ -108,64 +197,33 @@ export CLOUDID=MinhaEmpresa
 python build/main.py
 ```
 
-Você deve ver algo como:
+Saída esperada:
 
 ```
- * Serving Flask app 'main'
- * Debug mode: on
  * Running on all addresses (0.0.0.0)
  * Running on http://127.0.0.1:8080
 ```
 
-A aplicação está rodando em `http://localhost:8080`.
+**Deixe este terminal aberto.** Abra outro para os testes.
 
-**Deixe este terminal aberto.** Abra outro terminal para os próximos passos.
-
-### 6. Teste se a app está no ar
+### 6. Teste o health check
 
 ```bash
 curl http://localhost:8080/health
 ```
 
-Saída esperada:
-
 ```json
-{
-  "status": "ok"
-}
+{"status": "ok"}
 ```
 
-### 7. Teste o webhook direto (sem a app)
-
-Isola se o problema é no webhook ou na app:
-
-```bash
-curl -X POST -H "Content-Type: application/json" \
-  -d '{"text":"🧪 Teste direto do webhook"}' \
-  '$WEBHOOK'
-```
-
-Saída esperada (com um ID único):
-
-```json
-{
-  "name": "spaces/SEU_SPACE/messages/ID_UNICO",
-  "text": "🧪 Teste direto do webhook"
-}
-```
-
-Se falhar, o webhook está inválido ou expirado.
-
-### 8. Teste o endpoint /send (mais fácil)
+### 7. Envie uma mensagem de teste
 
 ```bash
 curl -X POST -u admin:secret \
   -H "Content-Type: application/json" \
-  -d '{"text":"🧪 Teste via app"}' \
+  -d '{"text":"🧪 Teste via /send"}' \
   http://localhost:8080/send
 ```
-
-Saída esperada:
 
 ```json
 {
@@ -174,235 +232,212 @@ Saída esperada:
 }
 ```
 
-### 9. Pare a aplicação
+### 8. Pare a aplicação
 
-No terminal onde a app está rodando, pressione `Ctrl + C`.
+Pressione `Ctrl + C` no terminal da app.
+
+<div align="right">[⬆️ Voltar ao topo](#send-notify)</div>
 
 ---
 
-## Provider OCI
+## ☁️ Providers
 
-### Payload de confirmação (primeiro POST)
+### OCI Monitoring
 
-A OCI envia um `ConfirmationURL` para confirmar a subscription. A app faz um GET nessa URL automaticamente:
+<details>
+<summary>📋 Confirmação de subscription</summary>
 
 ```bash
-curl -X POST -u admin:secret \
-  -H "Content-Type: application/json" \
+curl -X POST -u admin:secret -H "Content-Type: application/json" \
   -d '{"ConfirmationURL": "https://httpbin.org/get"}' \
   http://localhost:8080/subscription
 ```
+</details>
 
-### Payload de alarme disparando (FIRING)
+<details>
+<summary>🔥 Alarme FIRING</summary>
 
 ```bash
-curl -X POST -u admin:secret \
-  -H "Content-Type: application/json" \
+curl -X POST -u admin:secret -H "Content-Type: application/json" \
   -d '{
     "title": "CPU Alta",
     "severity": "CRITICAL",
-    "alarmMetaData": [
-      {
-        "status": "FIRING",
-        "namespace": "oci_computeagent",
-        "query": "CpuUtilization > 90",
-        "alarmSummary": "CPU acima de 90% por 5 minutos",
-        "metricValues": [95.2]
-      }
-    ]
+    "alarmMetaData": [{
+      "status": "FIRING",
+      "namespace": "oci_computeagent",
+      "query": "CpuUtilization > 90",
+      "alarmSummary": "CPU acima de 90%",
+      "metricValues": [95.2]
+    }]
   }' \
   http://localhost:8080/subscription
 ```
+</details>
 
-### Payload de alarme resolvido (OK → RESOLVED)
+<details>
+<summary>✅ Alarme RESOLVED</summary>
 
 ```bash
-curl -X POST -u admin:secret \
-  -H "Content-Type: application/json" \
+curl -X POST -u admin:secret -H "Content-Type: application/json" \
   -d '{
     "title": "CPU Alta",
     "severity": "CRITICAL",
-    "alarmMetaData": [
-      {
-        "status": "OK",
-        "namespace": "oci_computeagent",
-        "query": "CpuUtilization > 90",
-        "alarmSummary": "CPU abaixo do limiar",
-        "metricValues": [45.0]
-      }
-    ]
+    "alarmMetaData": [{
+      "status": "OK",
+      "namespace": "oci_computeagent",
+      "query": "CpuUtilization > 90",
+      "alarmSummary": "CPU normalizada",
+      "metricValues": [45.0]
+    }]
   }' \
   http://localhost:8080/subscription
 ```
+</details>
 
----
+### AWS CloudWatch
 
-## Provider AWS
-
-### Payload de confirmação
+<details>
+<summary>📋 Confirmação de subscription</summary>
 
 ```bash
-curl -X POST -u admin:secret \
-  -H "Content-Type: application/json" \
+curl -X POST -u admin:secret -H "Content-Type: application/json" \
   -d '{
     "Type": "SubscriptionConfirmation",
-    "SubscribeURL": "https://sns.us-east-1.amazonaws.com/confirm?Token=abc123"
+    "SubscribeURL": "https://sns.us-east-1.amazonaws.com/confirm?Token=abc"
   }' \
   http://localhost:8080/subscription
 ```
+</details>
 
-### Payload de alarme disparando (ALARM → FIRING)
+<details>
+<summary>🔥 Alarme disparando (ALARM → FIRING)</summary>
 
 ```bash
-curl -X POST -u admin:secret \
-  -H "Content-Type: application/json" \
+curl -X POST -u admin:secret -H "Content-Type: application/json" \
   -d '{
     "Type": "Notification",
-    "Message": "{\"AlarmName\":\"CPU Alta\",\"NewStateValue\":\"ALARM\",\"Region\":\"us-east-1\",\"AWSAccountId\":\"123456\",\"NewStateReason\":\"Threshold Crossed\",\"OldStateValue\":\"OK\",\"Trigger\":{\"MetricName\":\"CPUUtilization\",\"Namespace\":\"AWS/EC2\",\"Threshold\":90}}"
+    "Message": "{\"AlarmName\":\"CPU Alta\",\"NewStateValue\":\"ALARM\",\"Region\":\"us-east-1\",\"AWSAccountId\":\"123456\",\"NewStateReason\":\"Threshold Crossed\",\"Trigger\":{\"MetricName\":\"CPUUtilization\",\"Threshold\":90}}"
   }' \
   http://localhost:8080/subscription
 ```
+</details>
 
-### Payload de alarme resolvido (OK → RESOLVED)
+<details>
+<summary>✅ Alarme resolvido (OK → RESOLVED)</summary>
 
 ```bash
-curl -X POST -u admin:secret \
-  -H "Content-Type: application/json" \
+curl -X POST -u admin:secret -H "Content-Type: application/json" \
   -d '{
     "Type": "Notification",
-    "Message": "{\"AlarmName\":\"CPU Alta\",\"NewStateValue\":\"OK\",\"Region\":\"us-east-1\",\"AWSAccountId\":\"123456\",\"NewStateReason\":\"Threshold OK\",\"OldStateValue\":\"ALARM\",\"Trigger\":{\"MetricName\":\"CPUUtilization\",\"Namespace\":\"AWS/EC2\",\"Threshold\":90}}"
+    "Message": "{\"AlarmName\":\"CPU Alta\",\"NewStateValue\":\"OK\",\"Region\":\"us-east-1\",\"AWSAccountId\":\"123456\",\"NewStateReason\":\"Threshold OK\",\"Trigger\":{\"MetricName\":\"CPUUtilization\",\"Threshold\":90}}"
   }' \
   http://localhost:8080/subscription
 ```
+</details>
 
----
+### Azure Monitor
 
-## Provider Azure
-
-### Payload de alarme disparando (Fired → FIRING)
+<details>
+<summary>🔥 Alarme disparando (Fired → FIRING)</summary>
 
 ```bash
-curl -X POST -u admin:secret \
-  -H "Content-Type: application/json" \
+curl -X POST -u admin:secret -H "Content-Type: application/json" \
   -d '{
     "data": {
       "essentials": {
         "alertRule": "CPU Alta",
         "severity": "Sev2",
-        "signalType": "Metric",
         "monitorCondition": "Fired",
         "monitoringService": "Platform",
         "description": "CPU acima de 90%",
-        "alertTargetIDs": ["/subscriptions/sub-123/resourceGroups/rg-prod/providers/Microsoft.Compute/virtualMachines/vm-app01"]
+        "alertTargetIDs": ["/subscriptions/sub/resourceGroups/rg/providers/Microsoft.Compute/virtualMachines/vm01"]
       },
       "alertContext": {
-        "condition": {
-          "metricName": "Percentage CPU",
-          "metricValue": "95.3",
-          "threshold": "90"
-        }
+        "condition": {"metricName": "Percentage CPU", "metricValue": "95.3"}
       }
     }
   }' \
   http://localhost:8080/subscription
 ```
+</details>
 
-### Payload de alarme resolvido (Resolved → RESOLVED)
+<details>
+<summary>✅ Alarme resolvido (Resolved → RESOLVED)</summary>
 
 ```bash
-curl -X POST -u admin:secret \
-  -H "Content-Type: application/json" \
+curl -X POST -u admin:secret -H "Content-Type: application/json" \
   -d '{
     "data": {
       "essentials": {
         "alertRule": "CPU Alta",
         "severity": "Sev2",
-        "signalType": "Metric",
         "monitorCondition": "Resolved",
         "monitoringService": "Platform",
         "description": "CPU normalizada",
-        "alertTargetIDs": ["/subscriptions/sub-123/resourceGroups/rg-prod/providers/Microsoft.Compute/virtualMachines/vm-app01"]
+        "alertTargetIDs": ["/subscriptions/sub/resourceGroups/rg/providers/Microsoft.Compute/virtualMachines/vm01"]
       },
       "alertContext": {
-        "condition": {
-          "metricName": "Percentage CPU",
-          "metricValue": "45.0",
-          "threshold": "90"
-        }
+        "condition": {"metricName": "Percentage CPU", "metricValue": "45.0"}
       }
     }
   }' \
   http://localhost:8080/subscription
 ```
+</details>
+
+<div align="right">[⬆️ Voltar ao topo](#send-notify)</div>
 
 ---
 
-## Endpoint /send (teste rápido)
-
-Endpoint simples que envia qualquer texto direto para o Google Chat, sem normalização de provider:
+## 🐳 Testar com Docker
 
 ```bash
-curl -X POST -u admin:secret \
-  -H "Content-Type: application/json" \
-  -d '{"text":"🧪 Mensagem de teste"}' \
-  http://localhost:8080/send
-```
-
-Útil para testar se o webhook está funcionando sem precisar montar um payload de alarme.
-
----
-
-## Testar sem instalar nada (usando Docker)
-
-### 1. Construa a imagem
-
-```bash
+# Build
 docker build -t send-notify build/
-```
 
-### 2. Execute o container
-
-```bash
+# Run
 docker run --rm -p 8080:8080 \
   -e AUTH_admin=secret \
   -e AUTH_user=password \
-  -e WEBHOOK='https://chat.googleapis.com/v1/spaces/SEU_SPACE/messages?key=SEU_KEY&token=SEU_TOKEN' \
+  -e WEBHOOK='URL_DO_WEBHOOK' \
   -e CLOUDID=MinhaEmpresa \
   send-notify
 ```
 
-### 3. Teste (em outro terminal)
-
 ```bash
+# Testar (em outro terminal)
 curl -X POST -u admin:secret \
   -H "Content-Type: application/json" \
   -d '{"text":"🧪 Teste via Docker"}' \
   http://localhost:8080/send
 ```
 
+<div align="right">[⬆️ Voltar ao topo](#send-notify)</div>
+
 ---
 
-## Deploy no Kubernetes
+## ☸️ Deploy no Kubernetes
 
-### 1. Crie a Secret (credenciais e webhook)
+### 1. Crie a Secret
 
 ```bash
-kubectl create secret generic auth-users \
-  --from-literal=AUTH_admin=secret \
-  --from-literal=AUTH_user=password \
-  --from-literal=WEBHOOK='https://chat.googleapis.com/v1/spaces/SEU_SPACE/messages?key=SEU_KEY&token=SEU_TOKEN' \
+kubectl create secret generic s-sendnotify \
+  --from-literal=AUTH_ADMIN=seu_usuario \
+  --from-literal=AUTH_USER=sua_senha \
+  --from-literal=WEBHOOK='URL_DO_WEBHOOK' \
   --namespace=monitoring
 ```
+
+> ⚠️ O arquivo `03-sendnotify-secret.yaml` é um **template**. Nunca commitar com credenciais reais.
 
 ### 2. Aplique os manifestos
 
 ```bash
-kubectl apply -f artifacts/02-clusterRole.yaml
-kubectl apply -f artifacts/03-clusterRoleBinding.yaml
-kubectl apply -f artifacts/06-serviceAccount.yaml
-kubectl apply -f artifacts/04-deployment.yaml
-kubectl apply -f artifacts/05-service.yaml
-kubectl apply -f artifacts/07-ingress.yaml
+kubectl apply -f artifacts/01-sendnotify-rbac.yaml
+kubectl apply -f artifacts/02-sendnotify-configmap.yaml
+kubectl apply -f artifacts/04-sendnotify-service.yaml
+kubectl apply -f artifacts/05-sendnotify-deployment.yaml
+kubectl apply -f artifacts/06-sendnotify-ingress.yaml
 ```
 
 ### 3. Verifique
@@ -412,11 +447,13 @@ kubectl get pods -n monitoring -l app=sendnotify
 kubectl logs -n monitoring -l app=sendnotify --tail=50
 ```
 
+<div align="right">[⬆️ Voltar ao topo](#send-notify)</div>
+
 ---
 
-## Testar com mocks (validação offline)
+## 🧪 Testar com Mocks
 
-Testa os normalizadores sem precisar de webhook ou servidor rodando:
+Valida todos os normalizadores **sem precisar de webhook ou servidor rodando**:
 
 ```bash
 python3 build/tests/test_providers.py
@@ -426,32 +463,18 @@ Saída esperada:
 
 ```
 === Detect ===
-  ✓ oci-confirmation.json          → oci        (expected oci)
-  ✓ oci-firing.json                → oci        (expected oci)
-  ✓ oci-resolved.json              → oci        (expected oci)
-  ✓ aws-confirmation.json          → aws        (expected aws)
-  ✓ aws-firing.json                → aws        (expected aws)
-  ✓ aws-resolved.json              → aws        (expected aws)
-  ✓ azure-firing.json              → azure      (expected azure)
-  ✓ azure-resolved.json            → azure      (expected azure)
+  ✓ todos os 8 payloads detectados corretamente
 
 === Normalize ===
-  ✓ oci-confirmation.json          → confirmation_url=...
-  ✓ oci-firing.json                → status=FIRING
-  ✓ oci-resolved.json              → status=RESOLVED
-  ✓ aws-confirmation.json          → confirmation_url=...
-  ✓ aws-firing.json                → status=FIRING
-  ✓ aws-resolved.json              → status=RESOLVED
-  ✓ azure-firing.json              → status=FIRING
-  ✓ azure-resolved.json            → status=RESOLVED
+  ✓ todos os status mapeados (FIRING / RESOLVED)
 
 === Unknown ===
-  ✓ unknown payload                → None (correct)
+  ✓ payload desconhecido retorna None
 
 → Todos os testes passaram!
 ```
 
-Os payloads de exemplo ficam em `build/tests/samples/`:
+Payloads de exemplo disponíveis em `build/tests/samples/`:
 
 | Arquivo | Provider | Cenário |
 |---|---|---|
@@ -464,125 +487,70 @@ Os payloads de exemplo ficam em `build/tests/samples/`:
 | `azure-firing.json` | Azure | Disparando |
 | `azure-resolved.json` | Azure | Resolvido |
 
----
-
-## Arquitetura do código
-
-```
-oci-send-notify/
-├── build/
-│   ├── main.py                 # App Flask (endpoints /subscription, /send, /health)
-│   ├── wsgi.py                 # Entrypoint para gunicorn
-│   ├── app.py                  # Atalho para rodar python app.py (igual main.py)
-│   ├── requirements.txt        # Dependências Python
-│   ├── Dockerfile              # Imagem Docker
-│   ├── providers/
-│   │   ├── __init__.py         # Registry + auto-detect do provider
-│   │   ├── oci.py              # Normalizador OCI Monitoring
-│   │   ├── aws.py              # Normalizador AWS CloudWatch (via SNS)
-│   │   └── azure.py            # Normalizador Azure Monitor
-│   └── tests/
-│       ├── test_providers.py   # Script de validação dos normalizadores
-│       └── samples/            # Payloads mock de cada nuvem (8 arquivos)
-├── artifacts/
-│   ├── 02-clusterRole.yaml
-│   ├── 03-clusterRoleBinding.yaml
-│   ├── 04-deployment.yaml
-│   ├── 05-service.yaml
-│   ├── 06-serviceAccount.yaml
-│   ├── 07-ingress.yaml
-│   └── 08-secret-auth.yaml     # Template da Secret
-└── README.md
-```
-
-### Fluxo de uma requisição
-
-```
-POST /subscription
-  │
-  ├─ providers.detect(data)          ← identifica OCI / AWS / Azure
-  │
-  ├─ providers.normalize(data)       ← traduz para formato único:
-  │                                     { title, body, severity, status,
-  │                                       confirmation_url, details }
-  │
-  ├─ Se tem confirmation_url:
-  │   └─ GET na URL para confirmar subscription
-  │
-  ├─ Se não tem título:
-  │   └─ retorna 400
-  │
-  └─ Monta mensagem e envia para Google Chat via WEBHOOK
-```
-
-### Formato normalizado (unificado)
-
-```python
-{
-    "provider": "oci" | "aws" | "azure",
-    "confirmation_url": str | None,  # URL para GET de confirmação
-    "title": str,                    # Título do alarme
-    "body": str,                     # Descrição
-    "severity": str,                 # "CRITICAL" | "WARNING" | "INFO"
-    "status": "FIRING" | "RESOLVED", # Status normalizado
-    "details": {
-        "namespace": str,
-        "query": str,
-        "summary": str,
-        "metric_values": list,
-    }
-}
-```
+<div align="right">[⬆️ Voltar ao topo](#send-notify)</div>
 
 ---
 
-## Adicionar um novo provider
+## 🛠️ Troubleshooting
 
-### 1. Crie o arquivo do normalizador
+### App retorna 200 mas mensagem não aparece no Google Chat
 
-`build/providers/sua_nuvem.py`:
+1. Teste o webhook direto (sem a app):
+   ```bash
+   curl -X POST -H "Content-Type: application/json" \
+     -d '{"text":"teste"}' '$WEBHOOK'
+   ```
+   Se falhar, o webhook está inválido ou expirado.
 
-```python
-from . import register
+2. Confira se o `spaces/ID` no webhook é o espaço correto.
 
-@register('sua_nuvem')
-def normalize(data):
-    return {
-        'confirmation_url': None,
-        'title': data.get('nome_do_alarme', ''),
-        'body': data.get('descricao', ''),
-        'severity': data.get('severidade', ''),
-        'status': 'FIRING' if data.get('state') == 'ALERT' else 'RESOLVED',
-        'details': {
-            'namespace': '',
-            'query': '',
-            'summary': '',
-            'metric_values': [],
-        },
-    }
-```
+3. Verifique os logs:
+   ```bash
+   tail -f /tmp/sendnotify.log
+   ```
+   Procure por `HTTP 200` na linha do Google Chat.
 
-### 2. Adicione a detecção
+### Provider não detectado
 
-Em `build/providers/__init__.py`, função `detect()`:
-
-```python
-def detect(data):
-    if 'alarmMetaData' in data or 'ConfirmationURL' in data:
-        return 'oci'
-    if 'Type' in data and data.get('Type') in ('Notification', 'SubscriptionConfirmation'):
-        return 'aws'
-    if 'data' in data and 'essentials' in data.get('data', {}):
-        return 'azure'
-    if 'SEU_CAMPO_IDENTIFICADOR' in data:
-        return 'sua_nuvem'
-    return None
-```
-
-### 3. Teste com um payload mock
-
-Crie `build/tests/samples/sua_nuvem-firing.json` e rode:
+Execute o script de mocks para validar o payload:
 
 ```bash
 python3 build/tests/test_providers.py
 ```
+
+Se o payload for de uma nuvem não suportada, será necessário [adicionar um novo provider](#-visão-geral).
+
+### Pod no Kubernetes não inicia
+
+```bash
+kubectl describe pod -n monitoring -l app=sendnotify
+kubectl logs -n monitoring -l app=sendnotify
+```
+
+Verifique se a Secret `s-sendnotify` existe:
+
+```bash
+kubectl get secret -n monitoring s-sendnotify
+```
+
+<div align="right">[⬆️ Voltar ao topo](#send-notify)</div>
+
+---
+
+## 📬 Endpoints
+
+| Método | Rota | Autenticação | Descrição |
+|---|---|---|---|
+| `GET` | `/health` | ❌ | Health check para probes |
+| `POST` | `/subscription` | ✅ Basic Auth | Webhook principal (alarmes) |
+| `POST` | `/send` | ✅ Basic Auth | Envio de texto livre |
+
+<div align="right">[⬆️ Voltar ao topo](#send-notify)</div>
+
+---
+
+<div align="center">
+
+Feito com ☕ para simplificar alertas multi-cloud no Google Chat
+
+</div>

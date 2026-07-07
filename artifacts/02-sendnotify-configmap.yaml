@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cm-sendnotify
+  labels:
+    app: sendnotify
+data:
+  TZ: "America/Recife"
+  CLOUD: "Oracle Cloud"
+  CLOUDID: "MutantRogue"
