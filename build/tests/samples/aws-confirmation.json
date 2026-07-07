@@ -1,0 +1,8 @@
+{
+  "Type": "SubscriptionConfirmation",
+  "MessageId": "abcd-1234",
+  "Token": "2336412f37...",
+  "TopicArn": "arn:aws:sns:us-east-1:123456789012:MyTopic",
+  "SubscribeURL": "https://sns.us-east-1.amazonaws.com/?Action=ConfirmSubscription&TopicArn=arn:aws:sns:us-east-1:123456789012:MyTopic&Token=abc123",
+  "Timestamp": "2025-01-01T12:00:00.000Z"
+}

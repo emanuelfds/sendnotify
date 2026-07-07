@@ -1,0 +1,14 @@
+{
+  "title": "CPU Alta",
+  "body": "Instância normalizada",
+  "severity": "CRITICAL",
+  "alarmMetaData": [
+    {
+      "status": "OK",
+      "namespace": "oci_computeagent",
+      "query": "CpuUtilization > 90",
+      "alarmSummary": "CPU abaixo do limiar",
+      "metricValues": [45.0]
+    }
+  ]
+}

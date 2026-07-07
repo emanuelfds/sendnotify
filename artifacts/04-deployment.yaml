@@ -41,8 +41,6 @@ spec:
           value: 'Oracle Cloud'
         - name: 'CLOUDID'
           value: 'MutantRogue'
-        - name: 'WEBHOOK'
-          value: 'https://chat.googleapis.com/v1/spaces/AAAAWpyT3Ls/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=c9--2Sqer11Or20uIVP8x7X7_A8CPqV185i1vX8t1Yw' # ALERTA CRÍTICO
         resources:
           limits:
             cpu: "0.2"
@@ -50,16 +48,6 @@ spec:
           requests:
             cpu: "0.1"
             memory: 64Mi
-        volumeMounts:
-          - name: cm-sendnotify
-            mountPath: /app/main.py
-            subPath: main.py
-            readOnly: false
-          - name: cm-sendnotify
-            mountPath: /app/wsgi.py
-            subPath: wsgi.py
-            readOnly: false
-      volumes:
-      - name: cm-sendnotify
-        configMap:
-          name: cm-sendnotify
+        envFrom:
+        - secretRef:
+            name: auth-users

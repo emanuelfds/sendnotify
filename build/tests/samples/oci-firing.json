@@ -1,0 +1,14 @@
+{
+  "title": "CPU Alta",
+  "body": "Instância com pico de CPU",
+  "severity": "CRITICAL",
+  "alarmMetaData": [
+    {
+      "status": "FIRING",
+      "namespace": "oci_computeagent",
+      "query": "CpuUtilization > 90",
+      "alarmSummary": "CPU acima de 90% por 5 minutos",
+      "metricValues": [95.2]
+    }
+  ]
+}

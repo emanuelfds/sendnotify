@@ -1,0 +1,7 @@
+{
+  "Type": "Notification",
+  "MessageId": "efgh-5678",
+  "TopicArn": "arn:aws:sns:us-east-1:123456789012:MyTopic",
+  "Message": "{\"AlarmName\":\"CPU_Utilization_High\",\"AlarmDescription\":\"CPU > 90%\",\"AWSAccountId\":\"123456789012\",\"NewStateValue\":\"ALARM\",\"NewStateReason\":\"Threshold Crossed\",\"StateChangeTime\":\"2025-01-01T12:00:00.000Z\",\"Region\":\"US East (N. Virginia)\",\"OldStateValue\":\"OK\",\"Trigger\":{\"MetricName\":\"CPUUtilization\",\"Namespace\":\"AWS/EC2\",\"Statistic\":\"Average\",\"Period\":300,\"EvaluationPeriods\":2,\"Threshold\":90.0,\"ComparisonOperator\":\"GreaterThanThreshold\"}}",
+  "Timestamp": "2025-01-01T12:00:00.000Z"
+}

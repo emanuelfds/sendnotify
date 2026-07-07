@@ -1,0 +1,21 @@
+{
+  "schemaId": "azureMonitorCommonAlertSchema",
+  "data": {
+    "essentials": {
+      "alertRule": "CPU > 90%",
+      "severity": "Sev2",
+      "signalType": "Metric",
+      "monitorCondition": "Fired",
+      "monitoringService": "Platform",
+      "description": "CPU da VM acima de 90%",
+      "alertTargetIDs": ["/subscriptions/sub-123/resourceGroups/rg-prod/providers/Microsoft.Compute/virtualMachines/vm-app01"]
+    },
+    "alertContext": {
+      "condition": {
+        "metricName": "Percentage CPU",
+        "metricValue": "95.3",
+        "threshold": "90"
+      }
+    }
+  }
+}
