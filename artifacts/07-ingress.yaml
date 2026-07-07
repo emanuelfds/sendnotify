@@ -1,0 +1,23 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mutantrogue-sendnotify-ingress
+  namespace: monitoring
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - "mtsass-sendnotify.cxmsolution.com.br"
+      secretName: "sendnotify-tls"
+  rules:
+    - host: "mtsass-sendnotify.cxmsolution.com.br"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: svc-sendnotify
+                port:
+                  name: sendnotify

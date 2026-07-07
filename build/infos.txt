@@ -1,0 +1,20 @@
+#-- Para testar --#
+curl -X POST -H "Content-Type: application/json" -d '{"message": "Esta é uma mensagem de teste para o Google Chat!"}' http://localhost:5000/send_message
+
+curl -X POST -H "Content-Type: application/json" -d '{"message": "Hello, Google Chat!"}' http://admin:secret@send-message.h3rmes.com/ocispacenotify -v
+
+curl -X POST -H "Content-Type: application/json" -d '{"message": "Hello, Google Chat!"}' http://admin:secret@ocispacenotify.h3rmes.com/ocispacenotify -v
+
+curl -X POST -H "Content-Type: application/json" -d '{"title": "Test Alarm", "severity": "High", "alarmMetaData": [{"status": "FIRING", "namespace": "default", "query": "cpu_usage", "alarmSummary": "CPU usage is high", "metricValues": [95]}]}' https://admin:secret@ocispacenotify.h3rmes.com/ocispacenotify -v
+
+Send_message
+https://admin:secret@send-message.h3rmes.com/ocispacenotify
+https://admin:secret@send-message.h3rmes.com/subscription
+Notificações enviadas pelo App Send-Message	
+
+
+#-- Aquisições --#
+https://admin:secret@aqui-sendnotify.h3rmes.com/subscription
+
+#-- NewCobCobrança --#
+https://admin:secret@newcob-sendnotify.h3rmes.com/subscription
