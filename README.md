@@ -1,6 +1,8 @@
 <div align="center">
 
-![Send Notify](images/logo.png)
+![SendNotify](images/logo.png)
+
+</div>
 
 [![Python](https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white)](https://python.org)
 [![Flask](https://img.shields.io/badge/Flask-2.3-blue?logo=flask&logoColor=white)](https://flask.palletsprojects.com)
@@ -12,7 +14,13 @@
 [![Google Chat](https://img.shields.io/badge/Google_Chat-34A853?logo=googlechat&logoColor=white)](https://chat.google.com)
 [![License](https://img.shields.io/badge/License-MIT-green?logo=opensourceinitiative&logoColor=white)](LICENSE)
 
-</div>
+# 🛎️ SendNotify
+
+**Send Notify** é um webhook bridge **multi-cloud** que recebe alertas de **OCI Monitoring**, **AWS CloudWatch** e **Azure Monitor** e os encaminha para o **Google Chat**.
+
+A aplicação **detecta automaticamente** qual nuvem enviou o alerta, normaliza o payload e formata a mensagem com emojis e estrutura adequada para cada status (`FIRING` / `RESOLVED`).
+
+---
 
 ## Sumário
 
@@ -40,7 +48,11 @@
 
 A aplicação **detecta automaticamente** qual nuvem enviou o alerta, normaliza o payload e formata a mensagem com emojis e estrutura adequada para cada status (`FIRING` / `RESOLVED`).
 
-<div align="right">[⬆️ Voltar ao topo](#send-notify)</div>
+<div align="right">
+
+**[⬆️ Voltar ao topo](#-sendnotify)**
+
+</div>
 
 ---
 
@@ -61,7 +73,11 @@ A aplicação **detecta automaticamente** qual nuvem enviou o alerta, normaliza 
 | Testes offline com mocks | ✅ |
 | Pronto para Docker | ✅ |
 
-<div align="right">[⬆️ Voltar ao topo](#send-notify)</div>
+<div align="right">
+
+**[⬆️ Voltar ao topo](#-sendnotify)**
+
+</div>
 
 ---
 
@@ -89,7 +105,11 @@ A aplicação **detecta automaticamente** qual nuvem enviou o alerta, normaliza 
                             ── envia para o Google Chat
 ```
 
-<div align="right">[⬆️ Voltar ao topo](#send-notify)</div>
+<div align="right">
+
+**[⬆️ Voltar ao topo](#-sendnotify)**
+
+</div>
 
 ---
 
@@ -127,7 +147,11 @@ oci-send-notify/
 └── README.md
 ```
 
-<div align="right">[⬆️ Voltar ao topo](#send-notify)</div>
+<div align="right">
+
+**[⬆️ Voltar ao topo](#-sendnotify)**
+
+</div>
 
 ---
 
@@ -139,7 +163,7 @@ oci-send-notify/
 - **kubectl** (opcional, para deploy no Kubernetes)
 - Um **webhook do Google Chat** ([como criar](https://developers.google.com/chat/how-tos/webhooks))
 
-<div align="right">[⬆️ Voltar ao topo](#send-notify)</div>
+<div align="right">[⬆️ Voltar ao topo](#sendnotify)</div>
 
 ---
 
@@ -236,7 +260,7 @@ curl -X POST -u admin:secret \
 
 Pressione `Ctrl + C` no terminal da app.
 
-<div align="right">[⬆️ Voltar ao topo](#send-notify)</div>
+<div align="right">[⬆️ Voltar ao topo](#sendnotify)</div>
 
 ---
 
@@ -385,7 +409,11 @@ curl -X POST -u admin:secret -H "Content-Type: application/json" \
 ```
 </details>
 
-<div align="right">[⬆️ Voltar ao topo](#send-notify)</div>
+<div align="right">
+
+**[⬆️ Voltar ao topo](#-sendnotify)**
+
+</div>
 
 ---
 
@@ -412,7 +440,7 @@ curl -X POST -u admin:secret \
   http://localhost:8080/send
 ```
 
-<div align="right">[⬆️ Voltar ao topo](#send-notify)</div>
+<div align="right">[⬆️ Voltar ao topo](#sendnotify)</div>
 
 ---
 
@@ -447,7 +475,11 @@ kubectl get pods -n monitoring -l app=sendnotify
 kubectl logs -n monitoring -l app=sendnotify --tail=50
 ```
 
-<div align="right">[⬆️ Voltar ao topo](#send-notify)</div>
+<div align="right">
+
+**[⬆️ Voltar ao topo](#-sendnotify)**
+
+</div>
 
 ---
 
@@ -487,7 +519,11 @@ Payloads de exemplo disponíveis em `build/tests/samples/`:
 | `azure-firing.json` | Azure | Disparando |
 | `azure-resolved.json` | Azure | Resolvido |
 
-<div align="right">[⬆️ Voltar ao topo](#send-notify)</div>
+<div align="right">
+
+**[⬆️ Voltar ao topo](#-sendnotify)**
+
+</div>
 
 ---
 
@@ -533,7 +569,11 @@ Verifique se a Secret `s-sendnotify` existe:
 kubectl get secret -n monitoring s-sendnotify
 ```
 
-<div align="right">[⬆️ Voltar ao topo](#send-notify)</div>
+<div align="right">
+
+**[⬆️ Voltar ao topo](#-sendnotify)**
+
+</div>
 
 ---
 
@@ -545,7 +585,11 @@ kubectl get secret -n monitoring s-sendnotify
 | `POST` | `/subscription` | ✅ Basic Auth | Webhook principal (alarmes) |
 | `POST` | `/send` | ✅ Basic Auth | Envio de texto livre |
 
-<div align="right">[⬆️ Voltar ao topo](#sendnotify)</div>
+<div align="right">
+
+**[⬆️ Voltar ao topo](#-sendnotify)**
+
+</div>
 
 ---
 
