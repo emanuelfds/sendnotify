@@ -6,6 +6,6 @@ metadata:
   labels:
     app: sendnotify
 data:
-  TZ: "America/Recife"
-  CLOUD: "Oracle Cloud"
-  CLOUDID: "MutantRogue"
+  TZ: "Timezone"
+  CLOUD: "Provider"
+  CLOUDID: "Nome_da_Cloud"
