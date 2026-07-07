@@ -1,6 +1,6 @@
 <div align="center">
 
-# Send Notify
+![Send Notify](images/logo.png)
 
 [![Python](https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white)](https://python.org)
 [![Flask](https://img.shields.io/badge/Flask-2.3-blue?logo=flask&logoColor=white)](https://flask.palletsprojects.com)
@@ -545,7 +545,7 @@ kubectl get secret -n monitoring s-sendnotify
 | `POST` | `/subscription` | ✅ Basic Auth | Webhook principal (alarmes) |
 | `POST` | `/send` | ✅ Basic Auth | Envio de texto livre |
 
-<div align="right">[⬆️ Voltar ao topo](#send-notify)</div>
+<div align="right">[⬆️ Voltar ao topo](#sendnotify)</div>
 
 ---
 
