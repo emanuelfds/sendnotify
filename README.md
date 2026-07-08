@@ -14,7 +14,7 @@
 [![Google Chat](https://img.shields.io/badge/Google_Chat-34A853?logo=googlechat&logoColor=white)](https://chat.google.com)
 [![License](https://img.shields.io/badge/License-MIT-green?logo=opensourceinitiative&logoColor=white)](LICENSE)
 
-# 🛎️ SendNotify
+# SendNotify
 
 **Send Notify** é um webhook bridge **multi-cloud** que recebe alertas de **OCI Monitoring**, **AWS CloudWatch** e **Azure Monitor** e os encaminha para o **Google Chat**.
 
@@ -50,7 +50,7 @@ A aplicação **detecta automaticamente** qual nuvem enviou o alerta, normaliza 
 
 <div align="right">
 
-**[⬆️ Voltar ao topo](#-sendnotify)**
+**[⬆️ Voltar ao topo](#sendnotify)**
 
 </div>
 
@@ -75,7 +75,7 @@ A aplicação **detecta automaticamente** qual nuvem enviou o alerta, normaliza 
 
 <div align="right">
 
-**[⬆️ Voltar ao topo](#-sendnotify)**
+**[⬆️ Voltar ao topo](#sendnotify)**
 
 </div>
 
@@ -107,7 +107,7 @@ A aplicação **detecta automaticamente** qual nuvem enviou o alerta, normaliza 
 
 <div align="right">
 
-**[⬆️ Voltar ao topo](#-sendnotify)**
+**[⬆️ Voltar ao topo](#sendnotify)**
 
 </div>
 
@@ -149,7 +149,7 @@ sendnotify/
 
 <div align="right">
 
-**[⬆️ Voltar ao topo](#-sendnotify)**
+**[⬆️ Voltar ao topo](#sendnotify)**
 
 </div>
 
@@ -163,7 +163,11 @@ sendnotify/
 - **kubectl** (opcional, para deploy no Kubernetes)
 - Um **webhook do Google Chat** ([como criar](https://developers.google.com/chat/how-tos/webhooks))
 
-<div align="right">[⬆️ Voltar ao topo](#sendnotify)</div>
+<div align="right">
+
+**[⬆️ Voltar ao topo](#sendnotify)**
+
+</div>
 
 ---
 
@@ -260,7 +264,11 @@ curl -X POST -u admin:secret \
 
 Pressione `Ctrl + C` no terminal da app.
 
-<div align="right">[⬆️ Voltar ao topo](#sendnotify)</div>
+<div align="right">
+
+**[⬆️ Voltar ao topo](#sendnotify)**
+
+</div>
 
 ---
 
@@ -411,7 +419,7 @@ curl -X POST -u admin:secret -H "Content-Type: application/json" \
 
 <div align="right">
 
-**[⬆️ Voltar ao topo](#-sendnotify)**
+**[⬆️ Voltar ao topo](#sendnotify)**
 
 </div>
 
@@ -440,7 +448,11 @@ curl -X POST -u admin:secret \
   http://localhost:8080/send
 ```
 
-<div align="right">[⬆️ Voltar ao topo](#sendnotify)</div>
+<div align="right">
+
+**[⬆️ Voltar ao topo](#sendnotify)**
+
+</div>
 
 ---
 
@@ -477,7 +489,7 @@ kubectl logs -n monitoring -l app=sendnotify --tail=50
 
 <div align="right">
 
-**[⬆️ Voltar ao topo](#-sendnotify)**
+**[⬆️ Voltar ao topo](#sendnotify)**
 
 </div>
 
@@ -521,7 +533,7 @@ Payloads de exemplo disponíveis em `build/tests/samples/`:
 
 <div align="right">
 
-**[⬆️ Voltar ao topo](#-sendnotify)**
+**[⬆️ Voltar ao topo](#sendnotify)**
 
 </div>
 
@@ -571,7 +583,7 @@ kubectl get secret -n monitoring s-sendnotify
 
 <div align="right">
 
-**[⬆️ Voltar ao topo](#-sendnotify)**
+**[⬆️ Voltar ao topo](#sendnotify)**
 
 </div>
 
@@ -587,7 +599,7 @@ kubectl get secret -n monitoring s-sendnotify
 
 <div align="right">
 
-**[⬆️ Voltar ao topo](#-sendnotify)**
+**[⬆️ Voltar ao topo](#sendnotify)**
 
 </div>
 
