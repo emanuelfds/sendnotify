@@ -2,7 +2,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: sendnotify-ingress
-  namespace: obsevability
+  namespace: observability
   labels:
     app: sendnotify
 spec:

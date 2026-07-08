@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: de-sendnotify
-  namespace: obsevability
+  namespace: observability
 spec:
   selector:
     matchLabels:
@@ -12,9 +12,15 @@ spec:
     metadata:
       labels:
         app: sendnotify
-        version: "1.0.1"
+        version: "1.0.0"
     spec:
       serviceAccountName: sa-sendnotify
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -26,8 +32,12 @@ spec:
                 - services
       containers:
       - name: sendnotify
-        image: emanuelfds/ocisendnotify:1.0.0 
-        imagePullPolicy: IfNotPresent
+        image: emanuelfds/ocisendnotify:1.0.0
+        imagePullPolicy: Always
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: [ALL]
         command:
           - "gunicorn"
           - "-w"
@@ -36,7 +46,7 @@ spec:
           - "0.0.0.0:8080"
           - "wsgi:app"
           - "--capture-output"
-          - "--log-level=debug"
+          - "--log-level=info"
         ports:
         - name: sendnotify
           containerPort: 8080

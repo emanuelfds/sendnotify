@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: cm-sendnotify
-  namespace: obsevability
+  namespace: observability
   labels:
     app: sendnotify
 data:

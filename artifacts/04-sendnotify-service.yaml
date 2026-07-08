@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: svc-sendnotify
-  namespace: obsevability
+  namespace: observability
   labels:
     app: sendnotify
 spec:
