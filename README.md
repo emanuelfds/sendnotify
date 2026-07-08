@@ -116,7 +116,7 @@ A aplicação **detecta automaticamente** qual nuvem enviou o alerta, normaliza 
 ## 📁 Estrutura do Projeto
 
 ```
-oci-send-notify/
+sendnotify/
 │
 ├── build/                          # Código fonte e imagem
 │   ├── main.py                     # App Flask (endpoints /subscription, /send, /health)
@@ -174,7 +174,7 @@ oci-send-notify/
 ### 1. Clone o repositório
 
 ```bash
-cd /caminho/do/oci-send-notify
+cd /caminho/do/sendnotify
 ```
 
 ### 2. Crie o ambiente virtual
