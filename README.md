@@ -51,7 +51,7 @@ A aplicação **detecta automaticamente** qual nuvem enviou o alerta, normaliza 
 
 <div align="right">
 
-**[⬆️ Voltar ao topo](#-sendnotify)**
+**[🔼 Voltar ao topo](#-sendnotify)**
 
 </div>
 
@@ -76,7 +76,7 @@ A aplicação **detecta automaticamente** qual nuvem enviou o alerta, normaliza 
 
 <div align="right">
 
-**[⬆️ Voltar ao topo](#-sendnotify)**
+**[🔼 Voltar ao topo](#-sendnotify)**
 
 </div>
 
@@ -85,30 +85,42 @@ A aplicação **detecta automaticamente** qual nuvem enviou o alerta, normaliza 
 ## 🏗️ Fluxo
 
 ```
-┌──────────────┐     ┌──────────┐     ┌──────────────────┐     ┌──────────────┐
-│  OCI / AWS   │ ──▶ │  Tópico  │ ──▶ │  Subscription    │ ──▶ │  Google Chat │
-│  / Azure     │     │ (SNS)    │     │  HTTP → esta app │     │  (Webhook)   │
-└──────────────┘     └──────────┘     └──────────────────┘     └──────────────┘
-                                              │
-                                        ┌─────┴─────┐
-                                        │  detect() │ ← identifica OCI / AWS / Azure
-                                        ├───────────┤
-                                        │ normalize │ ← traduz para formato único
-                                        └─────┬─────┘
-                                              │
-                                   ┌──────────┴──────────┐
-                                   │                     │
-                            ├─ confirmation_url    ── sem título
-                            │   → GET na URL        → 400
-                            │   → "Subscription
-                            │     confirmed"
-                                   │
-                            ── envia para o Google Chat
+┌──────────────────┐     ┌──────────┐     ┌────────────────────┐     ┌──────────────┐
+│  OCI / AWS       │ ──▶ │  Tópico  │ ──▶ │  Ingress (nginx)   │ ──▶ │  Google Chat │
+│  / Azure         │     │ (SNS)    │     │  Subscription      │     │  (Webhook)   │
+│                  │     │          │     │  HTTP → SendNotify │     │              │
+└──────────────────┘     └──────────┘     └────────┬───────────┘     └──────────────┘
+                                                    │
+                                              ┌─────┴──────┐
+                                              │ Basic Auth │ ← AUTH_USER / AUTH_PASS
+                                              ├────────────┤
+                                              │  detect()  │ ← identifica OCI / AWS / Azure
+                                              ├────────────┤
+                                              │  normalize │ ← traduz para formato único
+                                              └─────┬──────┘
+                                                    │
+                                         ┌──────────┴──────────┐
+                                         │                     │
+                                  ┌──────┴───────┐   envia para Google Chat
+                                  │ confirmation │
+                                  │    _url?     │
+                                  ├──────────────┤
+                                  │  SIM → GET   │ → "Subscription confirmed"
+                                  │  NÃO ↓       │
+                                  └──────────────┘
 ```
+
+**Detecção automática do provider:**
+
+| Provider | Identificado por |
+|----------|-----------------|
+| OCI Monitoring | Campo `alarmMetaData` |
+| AWS CloudWatch | Campo `Type` + `Message` (SNS) |
+| Azure Monitor | Campo `data.essentials` |
 
 <div align="right">
 
-**[⬆️ Voltar ao topo](#-sendnotify)**
+**[🔼 Voltar ao topo](#-sendnotify)**
 
 </div>
 
@@ -150,7 +162,7 @@ sendnotify/
 
 <div align="right">
 
-**[⬆️ Voltar ao topo](#-sendnotify)**
+**[🔼 Voltar ao topo](#-sendnotify)**
 
 </div>
 
@@ -166,7 +178,7 @@ sendnotify/
 
 <div align="right">
 
-**[⬆️ Voltar ao topo](#-sendnotify)**
+**[🔼 Voltar ao topo](#-sendnotify)**
 
 </div>
 
@@ -265,7 +277,7 @@ Pressione `Ctrl + C` no terminal da app.
 
 <div align="right">
 
-**[⬆️ Voltar ao topo](#-sendnotify)**
+**[🔼 Voltar ao topo](#-sendnotify)**
 
 </div>
 
@@ -420,7 +432,7 @@ curl -X POST -H "Content-Type: application/json" \
 
 <div align="right">
 
-**[⬆️ Voltar ao topo](#-sendnotify)**
+**[🔼 Voltar ao topo](#-sendnotify)**
 
 </div>
 
@@ -450,7 +462,7 @@ curl -X POST -u admin:secret \
 
 <div align="right">
 
-**[⬆️ Voltar ao topo](#-sendnotify)**
+**[🔼 Voltar ao topo](#-sendnotify)**
 
 </div>
 
@@ -489,7 +501,7 @@ kubectl logs -n monitoring -l app=sendnotify --tail=50
 
 <div align="right">
 
-**[⬆️ Voltar ao topo](#-sendnotify)**
+**[🔼 Voltar ao topo](#-sendnotify)**
 
 </div>
 
@@ -533,7 +545,7 @@ Payloads de exemplo disponíveis em `build/tests/samples/`:
 
 <div align="right">
 
-**[⬆️ Voltar ao topo](#-sendnotify)**
+**[🔼 Voltar ao topo](#-sendnotify)**
 
 </div>
 
@@ -653,7 +665,7 @@ echo "<IP_DO_INGRESS> aquisicoes-sendnotify.cxmsolution.com.br" | sudo tee -a /e
 
 <div align="right">
 
-**[⬆️ Voltar ao topo](#-sendnotify)**
+**[🔼 Voltar ao topo](#-sendnotify)**
 
 </div>
 
@@ -703,7 +715,7 @@ kubectl get secret -n monitoring s-sendnotify
 
 <div align="right">
 
-**[⬆️ Voltar ao topo](#-sendnotify)**
+**[🔼 Voltar ao topo](#-sendnotify)**
 
 </div>
 
@@ -719,7 +731,7 @@ kubectl get secret -n monitoring s-sendnotify
 
 <div align="right">
 
-**[⬆️ Voltar ao topo](#-sendnotify)**
+**[🔼 Voltar ao topo](#-sendnotify)**
 
 </div>
 
