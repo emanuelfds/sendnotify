@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.2](https://github.com/emanuelfds/sendnotify/compare/v1.1.1...v1.1.2) (2026-07-13)
+
+
+### Bug Fixes
+
+* atualiza googleapis/release-please-action ([95551ef](https://github.com/emanuelfds/sendnotify/commit/95551eff8e86d9ebc3f8d93e15377febe47e51b2))
+
 ## [1.1.1](https://github.com/emanuelfds/sendnotify/compare/v1.1.0...v1.1.1) (2026-07-13)
 
 
