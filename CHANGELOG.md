@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.3](https://github.com/emanuelfds/sendnotify/compare/v1.1.2...v1.1.3) (2026-07-13)
+
+
+### Bug Fixes
+
+* remove o warning do node20 depreciado ([b09d27d](https://github.com/emanuelfds/sendnotify/commit/b09d27d9c21fd53db69fea844609c435010e983b))
+
 ## [1.1.2](https://github.com/emanuelfds/sendnotify/compare/v1.1.1...v1.1.2) (2026-07-13)
 
 
