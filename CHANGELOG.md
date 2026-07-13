@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/emanuelfds/sendnotify/compare/v1.1.0...v1.1.1) (2026-07-13)
+
+
+### Bug Fixes
+
+* adiciona type annotations e ajusta mypy no CI ([7641489](https://github.com/emanuelfds/sendnotify/commit/76414891359ce3100250903cb446fb2a2bce5d79))
+
 ## [1.1.0](https://github.com/emanuelfds/sendnotify/compare/v1.0.0...v1.1.0) (2026-07-13)
 
 
