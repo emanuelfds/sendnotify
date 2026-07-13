@@ -1,8 +1,9 @@
 import logging
+from collections.abc import Callable
 
 log = logging.getLogger(__name__)
 
-PROVIDERS = {}
+PROVIDERS: dict[str, Callable] = {}
 
 
 def register(name):

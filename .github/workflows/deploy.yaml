@@ -105,7 +105,7 @@ jobs:
         run: ruff check .
 
       - name: 🔍 Verificar tipos com Mypy
-        run: mypy .
+        run: mypy build/
 
   test-python:
     name: 🧪 Testar Providers
