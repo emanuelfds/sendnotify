@@ -7,5 +7,5 @@ metadata:
     app: sendnotify
 data:
   TZ: "America/Recife"
-  CLOUD: "OCI"
-  CLOUDID: "Monitoring"
+  CLOUD: "SUA_CLOUD"
+  CLOUDID: "SUA_ACCOUNT"
