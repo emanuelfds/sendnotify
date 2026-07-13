@@ -1,18 +1,14 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: sendnotify-ingress
-  namespace: monitoring
+  name: in-sendnotify
+  namespace: observability
   labels:
     app: sendnotify
 spec:
   ingressClassName: nginx
-  # tls:
-  #   - hosts:
-  #       - "sendnotify.dominio.com.br"
-  #     secretName: "sendnotify-tls"
   rules:
-    - host: "aquisicoes-sendnotify.cxmsolution.com.br"
+    - host: "sendnotify.emanuelfds.com.br"
       http:
         paths:
           - path: /
