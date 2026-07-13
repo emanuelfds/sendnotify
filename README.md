@@ -1,6 +1,6 @@
 <div align="center">
 
-![SendNotify](images/logo2.png)
+![SendNotify](images/sendnotify.png)
 
 </div>
 
@@ -16,7 +16,7 @@
 
 # 📨 SendNotify
 
-**Send Notify** é um webhook bridge **multi-cloud** que recebe alertas de **OCI Monitoring**, **AWS CloudWatch** e **Azure Monitor** e os encaminha para o **Google Chat**.
+**SendNotify** é um webhook bridge **multi-cloud** que recebe alertas de **OCI Monitoring**, **AWS CloudWatch** e **Azure Monitor** e os encaminha para o **Google Chat**.
 
 A aplicação **detecta automaticamente** qual nuvem enviou o alerta, normaliza o payload e formata a mensagem com emojis e estrutura adequada para cada status (`FIRING` / `RESOLVED`).
 
