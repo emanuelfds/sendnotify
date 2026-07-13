@@ -29,7 +29,7 @@ jobs:
           severity: 'HIGH,CRITICAL'
 
       - name: Save Trivy SARIF as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: trivy-sarif
@@ -56,7 +56,7 @@ jobs:
           severity: 'CRITICAL,HIGH,MEDIUM'
 
       - name: 📤 Upload Trivy scan results to GitHub Security tab - Application
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: 'trivy-results-application.sarif'
@@ -75,7 +75,7 @@ jobs:
           severity: 'CRITICAL,HIGH,MEDIUM'
 
       - name: 📤 Upload Trivy scan results to GitHub Security tab - Artifacts
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: 'trivy-results-artifacts.sarif'
@@ -180,7 +180,7 @@ jobs:
           severity: 'CRITICAL,HIGH,MEDIUM'
 
       - name: 📤 Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: 'trivy-results-ghcr.sarif'
