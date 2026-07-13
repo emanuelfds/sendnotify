@@ -32,7 +32,7 @@ spec:
                 - services
       containers:
       - name: sendnotify
-        image: emanuelfds/sendnotify:1.3.0
+        image: emanuelfds/sendnotify:1.0.0
         imagePullPolicy: Always
         securityContext:
           allowPrivilegeEscalation: false
