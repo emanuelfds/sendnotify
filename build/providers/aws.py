@@ -6,31 +6,31 @@ from . import register
 log = logging.getLogger(__name__)
 
 SEVERITY_MAP = {
-    'ALARM': 'CRITICAL',
-    'OK': 'INFO',
-    'INSUFFICIENT_DATA': 'WARNING',
+    "ALARM": "CRITICAL",
+    "OK": "INFO",
+    "INSUFFICIENT_DATA": "WARNING",
 }
 
 STATUS_MAP = {
-    'ALARM': 'FIRING',
-    'OK': 'RESOLVED',
-    'INSUFFICIENT_DATA': 'INFO',
+    "ALARM": "FIRING",
+    "OK": "RESOLVED",
+    "INSUFFICIENT_DATA": "INFO",
 }
 
 
-@register('aws')
+@register("aws")
 def normalize_aws(data):
-    if data.get('Type') == 'SubscriptionConfirmation':
+    if data.get("Type") == "SubscriptionConfirmation":
         return {
-            'confirmation_url': data.get('SubscribeURL'),
-            'title': None,
-            'body': None,
-            'severity': None,
-            'status': None,
-            'details': {},
+            "confirmation_url": data.get("SubscribeURL"),
+            "title": None,
+            "body": None,
+            "severity": None,
+            "status": None,
+            "details": {},
         }
 
-    message_str = data.get('Message', '{}')
+    message_str = data.get("Message", "{}")
     if isinstance(message_str, str):
         try:
             alarm = json.loads(message_str)
@@ -40,18 +40,18 @@ def normalize_aws(data):
     else:
         alarm = message_str
 
-    title = alarm.get('AlarmName', '')
-    old_state = alarm.get('OldStateValue', '')
-    new_state = alarm.get('NewStateValue', '')
-    reason = alarm.get('NewStateReason', '')
-    region = alarm.get('Region', '')
-    account = alarm.get('AWSAccountId', '')
-    trigger = alarm.get('Trigger', {})
+    title = alarm.get("AlarmName", "")
+    old_state = alarm.get("OldStateValue", "")
+    new_state = alarm.get("NewStateValue", "")
+    reason = alarm.get("NewStateReason", "")
+    region = alarm.get("Region", "")
+    account = alarm.get("AWSAccountId", "")
+    trigger = alarm.get("Trigger", {})
 
     status = STATUS_MAP.get(new_state, new_state)
-    if status == 'FIRING':
+    if status == "FIRING":
         title = f"\U0001f525 FIRING \U0001f525 \n\n*Alarm*: {title}"
-    elif status == 'RESOLVED':
+    elif status == "RESOLVED":
         title = f"\u2705 RESOLVED \u2705 \n\n*Alarm*: {title}"
 
     lines = [
@@ -65,17 +65,17 @@ def normalize_aws(data):
         lines.append(f"*Threshold*: {trigger.get('Threshold', '')}")
 
     details = {
-        'namespace': trigger.get('Namespace', ''),
-        'query': trigger.get('MetricName', ''),
-        'summary': reason,
-        'metric_values': [trigger.get('Threshold', '')],
+        "namespace": trigger.get("Namespace", ""),
+        "query": trigger.get("MetricName", ""),
+        "summary": reason,
+        "metric_values": [trigger.get("Threshold", "")],
     }
 
     return {
-        'confirmation_url': None,
-        'title': title,
-        'body': '\n'.join(lines),
-        'severity': SEVERITY_MAP.get(new_state, 'INFO'),
-        'status': status,
-        'details': details,
+        "confirmation_url": None,
+        "title": title,
+        "body": "\n".join(lines),
+        "severity": SEVERITY_MAP.get(new_state, "INFO"),
+        "status": status,
+        "details": details,
     }

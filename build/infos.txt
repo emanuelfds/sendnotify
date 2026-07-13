@@ -10,7 +10,7 @@ curl -X POST -H "Content-Type: application/json" -d '{"title": "Test Alarm", "se
 Send_message
 https://admin:secret@send-message.h3rmes.com/ocispacenotify
 https://admin:secret@send-message.h3rmes.com/subscription
-Notificações enviadas pelo App Send-Message	
+Notificações enviadas pelo App Send-Message
 
 
 #-- Aquisições --#

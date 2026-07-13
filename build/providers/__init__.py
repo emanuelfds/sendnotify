@@ -9,20 +9,21 @@ def register(name):
     def decorator(fn):
         PROVIDERS[name] = fn
         return fn
+
     return decorator
 
 
 # Import provider modules to trigger @register decorators
-from . import oci, aws, azure  # noqa: F401, E402
+from . import aws, azure, oci  # noqa: F401, E402
 
 
 def detect(data):
-    if 'alarmMetaData' in data or 'ConfirmationURL' in data:
-        return 'oci'
-    if 'Type' in data and data.get('Type') in ('Notification', 'SubscriptionConfirmation'):
-        return 'aws'
-    if 'data' in data and 'essentials' in data.get('data', {}):
-        return 'azure'
+    if "alarmMetaData" in data or "ConfirmationURL" in data:
+        return "oci"
+    if "Type" in data and data.get("Type") in ("Notification", "SubscriptionConfirmation"):
+        return "aws"
+    if "data" in data and "essentials" in data.get("data", {}):
+        return "azure"
     return None
 
 
@@ -36,5 +37,5 @@ def normalize(data):
         log.error(f"No normalizer registered for provider: {provider}")
         return None
     result = fn(data)
-    result['provider'] = provider
+    result["provider"] = provider
     return result

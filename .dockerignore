@@ -1,0 +1,9 @@
+.git
+.github
+.gitignore
+.release-please-manifest.json
+release-please-config.json
+artifacts
+images
+*.md
+LICENSE

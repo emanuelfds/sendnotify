@@ -568,7 +568,7 @@ Copie o IP da coluna `ADDRESS`.
 ### 2. Teste o health check
 
 ```bash
-curl http://aquisicoes-sendnotify.cxmsolution.com.br/health
+curl http://sendnotify.emanuelfds.com.br/health
 ```
 
 ```json
@@ -581,7 +581,7 @@ curl http://aquisicoes-sendnotify.cxmsolution.com.br/health
 curl -X POST -u <user>:<password> \
   -H "Content-Type: application/json" \
   -d '{"text":"Teste via URL pública"}' \
-  http://aquisicoes-sendnotify.cxmsolution.com.br/send
+  http://sendnotify.emanuelfds.com.br/send
 ```
 
 ### 4. Teste confirmação de subscription (simula OCI)
@@ -592,7 +592,7 @@ Quando o OCI Monitoring cria um alarme com webhook, ele envia um POST com `Confi
 curl -X POST -u <user>:<password> \
   -H "Content-Type: application/json" \
   -d '{"ConfirmationURL": "https://httpbin.org/get"}' \
-  http://aquisicoes-sendnotify.cxmsolution.com.br/subscription
+  http://sendnotify.emanuelfds.com.br/subscription
 ```
 
 ```json
@@ -617,7 +617,7 @@ curl -X POST -u <user>:<password> \
       "metricValues": [95.2]
     }]
   }' \
-  http://aquisicoes-sendnotify.cxmsolution.com.br/subscription
+  http://sendnotify.emanuelfds.com.br/subscription
 ```
 
 ### 6. Teste alarme AWS
@@ -629,7 +629,7 @@ curl -X POST -u <user>:<password> \
     "Type": "Notification",
     "Message": "{\"AlarmName\":\"CPU Alta\",\"NewStateValue\":\"ALARM\",\"Region\":\"us-east-1\",\"AWSAccountId\":\"123456\",\"NewStateReason\":\"Threshold Crossed\",\"Trigger\":{\"MetricName\":\"CPUUtilization\",\"Threshold\":90}}"
   }' \
-  http://aquisicoes-sendnotify.cxmsolution.com.br/subscription
+  http://sendnotify.emanuelfds.com.br/subscription
 ```
 
 ### 7. Teste alarme Azure
@@ -652,7 +652,7 @@ curl -X POST -u <user>:<password> \
       }
     }
   }' \
-  http://aquisicoes-sendnotify.cxmsolution.com.br/subscription
+  http://sendnotify.emanuelfds.com.br/subscription
 ```
 
 ### Resolução DNS (se necessário)
@@ -660,7 +660,7 @@ curl -X POST -u <user>:<password> \
 Se o hostname ainda não resolver, adicione no `/etc/hosts`:
 
 ```bash
-echo "<IP_DO_INGRESS> aquisicoes-sendnotify.cxmsolution.com.br" | sudo tee -a /etc/hosts
+echo "<IP_DO_INGRESS> sendnotify.emanuelfds.com.br" | sudo tee -a /etc/hosts
 ```
 
 <div align="right">

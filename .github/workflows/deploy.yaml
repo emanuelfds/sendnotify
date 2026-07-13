@@ -1,0 +1,186 @@
+name: Build Docker Image
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions: write-all
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  trivy-scanning:
+    name: 🔍 Trivy Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner in repo mode
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          ignore-unfixed: true
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'HIGH,CRITICAL'
+
+      - name: Save Trivy SARIF as artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trivy-sarif
+          path: trivy-results.sarif
+
+  trivy-scanning-configs:
+    name: 🔍 Trivy Scanner Configs
+    needs: [trivy-scanning]
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🚪 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🔍 Run Trivy vulnerability scanner in IaC mode - Application
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          scan-ref: './build'
+          hide-progress: false
+          format: 'sarif'
+          output: 'trivy-results-application.sarif'
+          exit-code: '0'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH,MEDIUM'
+
+      - name: 📤 Upload Trivy scan results to GitHub Security tab - Application
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results-application.sarif'
+          category: 'TrivyScanResultsApplication'
+
+      - name: 🔍 Run Trivy vulnerability scanner in IaC mode - Artifacts
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          scan-ref: './artifacts'
+          hide-progress: false
+          format: 'sarif'
+          output: 'trivy-results-artifacts.sarif'
+          exit-code: '0'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH,MEDIUM'
+
+      - name: 📤 Upload Trivy scan results to GitHub Security tab - Artifacts
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results-artifacts.sarif'
+          category: 'TrivyScanResultsArtifacts'
+
+  lint-python:
+    name: 🧹 Lint & Type Check Python
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🚪 Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: 🐍 Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: 📦 Instalar dependências de lint e type checking
+        run: |
+          python -m pip install --upgrade pip
+          pip install black ruff mypy flask requests flask-httpauth werkzeug
+
+      - name: 🧹 Verificar formatação com Black
+        run: black build/ --check --verbose
+
+      - name: 🕵️ Verificar estilo com Ruff
+        run: ruff check .
+
+      - name: 🔍 Verificar tipos com Mypy
+        run: mypy .
+
+  test-python:
+    name: 🧪 Testar Providers
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🚪 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🐍 Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: 🧪 Rodar testes
+        run: python build/tests/test_providers.py
+
+  build-and-push-image:
+    name: 🛠️ Build and ⬆️ Push Docker Image
+    needs: [trivy-scanning-configs, lint-python, test-python]
+    runs-on: ubuntu-latest
+    outputs:
+      docker_version: ${{ steps.meta.outputs.version }}
+    steps:
+      - name: 🚪 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 👤 Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GIT_PAT }}
+
+      - name: 👤 Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: ⛏️ Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+            emanuelfds/sendnotify
+          tags: |
+            type=semver,pattern={{version}}
+
+      - name: 👁️ Display Docker Metadata Output Version
+        run: echo "VERSION=${{ steps.meta.outputs.version }}"
+
+      - name: 🛠️ Build and ⬆️ Push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./build
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          cache-to: type=inline
+
+      - name: 🔍 Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}'
+          format: 'sarif'
+          output: 'trivy-results-ghcr.sarif'
+          exit-code: '0'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+
+      - name: 📤 Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results-ghcr.sarif'
