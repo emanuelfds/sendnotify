@@ -12,13 +12,11 @@ auth = HTTPBasicAuth()
 
 users = {}
 
-PREFIX = 'AUTH_'
-
 def load_users():
-    for key, val in os.environ.items():
-        if key.startswith(PREFIX):
-            username = key[len(PREFIX):].lower()
-            users[username] = generate_password_hash(val)
+    user = os.environ.get('AUTH_USER')
+    password = os.environ.get('AUTH_PASS')
+    if user and password:
+        users[user] = generate_password_hash(password)
 
 load_users()
 

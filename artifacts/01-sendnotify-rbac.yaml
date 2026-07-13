@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: sa-sendnotify
-  namespace: observability
+  namespace: monitoring
   labels:
     app: sendnotify
 ---
@@ -35,4 +35,4 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: sa-sendnotify
-  namespace: observability
+    namespace: monitoring

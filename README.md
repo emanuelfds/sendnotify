@@ -1,6 +1,6 @@
 <div align="center">
 
-![SendNotify](images/logo.png)
+![SendNotify](images/sendnotify.png)
 
 </div>
 
@@ -37,6 +37,7 @@ A aplicação **detecta automaticamente** qual nuvem enviou o alerta, normaliza 
 - [🐳 Testar com Docker](#-testar-com-docker)
 - [☸️ Deploy no Kubernetes](#️-deploy-no-kubernetes)
 - [🧪 Testar com Mocks](#-testar-com-mocks)
+- [🌐 Testar via Ingress (URL pública)](#-testar-via-ingress-url-pública)
 - [🛠️ Troubleshooting](#️-troubleshooting)
 - [📬 Endpoints](#-endpoints)
 
@@ -65,11 +66,11 @@ A aplicação **detecta automaticamente** qual nuvem enviou o alerta, normaliza 
 | Suporte Azure Monitor | ✅ |
 | Auto-detect do provider pelo payload | ✅ |
 | Confirmação automática de subscription | ✅ |
-| Autenticação Basic Auth via Secret | ✅ |
+| Autenticação Basic Auth no /send | ✅ |
 | Health check (/health) | ✅ |
 | Endpoint de teste (/send) | ✅ |
 | Probes Kubernetes (liveness + readiness) | ✅ |
-| Node affinity para nós services | ✅ |
+| Node affinity para nós monitoring | ✅ |
 | Testes offline com mocks | ✅ |
 | Pronto para Docker | ✅ |
 
@@ -201,20 +202,18 @@ pip install -r build/requirements.txt
 ### 4. Configure as variáveis de ambiente
 
 ```bash
-export AUTH_admin=secret
-export AUTH_user=password
+export AUTH_USER=admin
+export AUTH_PASS=secret
 export WEBHOOK='https://chat.googleapis.com/v1/spaces/SEU_SPACE/messages?key=SEU_KEY&token=SEU_TOKEN'
-export CLOUDID=MinhaEmpresa
 ```
 
 > 💡 **Dica**: crie um arquivo `.env` (não versionado) para não digitar toda vez:
 >
 > ```bash
 > cat > .env << 'EOF'
-> export AUTH_admin=secret
-> export AUTH_user=password
+> export AUTH_USER=admin
+> export AUTH_PASS=secret
 > export WEBHOOK='URL_DO_WEBHOOK'
-> export CLOUDID=MinhaEmpresa
 > EOF
 > source .env
 > ```
@@ -274,13 +273,15 @@ Pressione `Ctrl + C` no terminal da app.
 
 ## ☁️ Providers
 
+> **Nota:** Todos os exemplos abaixo utilizam `-u <user>:<password>` para autenticação. Substitua pelas credenciais da Secret `s-sendnotify`.
+
 ### OCI Monitoring
 
 <details>
 <summary>📋 Confirmação de subscription</summary>
 
 ```bash
-curl -X POST -u admin:secret -H "Content-Type: application/json" \
+curl -X POST -u <user>:<password> -H "Content-Type: application/json" \
   -d '{"ConfirmationURL": "https://httpbin.org/get"}' \
   http://localhost:8080/subscription
 ```
@@ -290,7 +291,7 @@ curl -X POST -u admin:secret -H "Content-Type: application/json" \
 <summary>🔥 Alarme FIRING</summary>
 
 ```bash
-curl -X POST -u admin:secret -H "Content-Type: application/json" \
+curl -X POST -u <user>:<password> -H "Content-Type: application/json" \
   -d '{
     "title": "CPU Alta",
     "severity": "CRITICAL",
@@ -310,7 +311,7 @@ curl -X POST -u admin:secret -H "Content-Type: application/json" \
 <summary>✅ Alarme RESOLVED</summary>
 
 ```bash
-curl -X POST -u admin:secret -H "Content-Type: application/json" \
+curl -X POST -u <user>:<password> -H "Content-Type: application/json" \
   -d '{
     "title": "CPU Alta",
     "severity": "CRITICAL",
@@ -332,7 +333,7 @@ curl -X POST -u admin:secret -H "Content-Type: application/json" \
 <summary>📋 Confirmação de subscription</summary>
 
 ```bash
-curl -X POST -u admin:secret -H "Content-Type: application/json" \
+curl -X POST -u <user>:<password> -H "Content-Type: application/json" \
   -d '{
     "Type": "SubscriptionConfirmation",
     "SubscribeURL": "https://sns.us-east-1.amazonaws.com/confirm?Token=abc"
@@ -345,7 +346,7 @@ curl -X POST -u admin:secret -H "Content-Type: application/json" \
 <summary>🔥 Alarme disparando (ALARM → FIRING)</summary>
 
 ```bash
-curl -X POST -u admin:secret -H "Content-Type: application/json" \
+curl -X POST -u <user>:<password> -H "Content-Type: application/json" \
   -d '{
     "Type": "Notification",
     "Message": "{\"AlarmName\":\"CPU Alta\",\"NewStateValue\":\"ALARM\",\"Region\":\"us-east-1\",\"AWSAccountId\":\"123456\",\"NewStateReason\":\"Threshold Crossed\",\"Trigger\":{\"MetricName\":\"CPUUtilization\",\"Threshold\":90}}"
@@ -358,7 +359,7 @@ curl -X POST -u admin:secret -H "Content-Type: application/json" \
 <summary>✅ Alarme resolvido (OK → RESOLVED)</summary>
 
 ```bash
-curl -X POST -u admin:secret -H "Content-Type: application/json" \
+curl -X POST -u <user>:<password> -H "Content-Type: application/json" \
   -d '{
     "Type": "Notification",
     "Message": "{\"AlarmName\":\"CPU Alta\",\"NewStateValue\":\"OK\",\"Region\":\"us-east-1\",\"AWSAccountId\":\"123456\",\"NewStateReason\":\"Threshold OK\",\"Trigger\":{\"MetricName\":\"CPUUtilization\",\"Threshold\":90}}"
@@ -373,7 +374,7 @@ curl -X POST -u admin:secret -H "Content-Type: application/json" \
 <summary>🔥 Alarme disparando (Fired → FIRING)</summary>
 
 ```bash
-curl -X POST -u admin:secret -H "Content-Type: application/json" \
+curl -X POST -H "Content-Type: application/json" \
   -d '{
     "data": {
       "essentials": {
@@ -397,7 +398,7 @@ curl -X POST -u admin:secret -H "Content-Type: application/json" \
 <summary>✅ Alarme resolvido (Resolved → RESOLVED)</summary>
 
 ```bash
-curl -X POST -u admin:secret -H "Content-Type: application/json" \
+curl -X POST -H "Content-Type: application/json" \
   -d '{
     "data": {
       "essentials": {
@@ -433,10 +434,9 @@ docker build -t send-notify build/
 
 # Run
 docker run --rm -p 8080:8080 \
-  -e AUTH_admin=secret \
-  -e AUTH_user=password \
+  -e AUTH_USER=admin \
+  -e AUTH_PASS=secret \
   -e WEBHOOK='URL_DO_WEBHOOK' \
-  -e CLOUDID=MinhaEmpresa \
   send-notify
 ```
 
@@ -462,8 +462,8 @@ curl -X POST -u admin:secret \
 
 ```bash
 kubectl create secret generic s-sendnotify \
-  --from-literal=AUTH_ADMIN=seu_usuario \
-  --from-literal=AUTH_USER=sua_senha \
+  --from-literal=AUTH_USER=<seu_usuario> \
+  --from-literal=AUTH_PASS=<sua_senha> \
   --from-literal=WEBHOOK='URL_DO_WEBHOOK' \
   --namespace=monitoring
 ```
@@ -539,6 +539,126 @@ Payloads de exemplo disponíveis em `build/tests/samples/`:
 
 ---
 
+## 🌐 Testar via Ingress (URL pública)
+
+Após aplicar os manifestos do Kubernetes, teste os endpoints pelo hostname configurado no Ingress.
+
+> **Nota:** Ambos os endpoints `/subscription` e `/send` exigem Basic Auth. As credenciais são definidas na Secret `s-sendnotify` (`AUTH_USER` / `AUTH_PASS`).
+
+### 1. Verifique o Ingress
+
+```bash
+kubectl get ingress -n monitoring sendnotify-ingress
+```
+
+Copie o IP da coluna `ADDRESS`.
+
+### 2. Teste o health check
+
+```bash
+curl http://aquisicoes-sendnotify.cxmsolution.com.br/health
+```
+
+```json
+{"status": "ok"}
+```
+
+### 3. Teste envio de mensagem (com Basic Auth)
+
+```bash
+curl -X POST -u <user>:<password> \
+  -H "Content-Type: application/json" \
+  -d '{"text":"Teste via URL pública"}' \
+  http://aquisicoes-sendnotify.cxmsolution.com.br/send
+```
+
+### 4. Teste confirmação de subscription (simula OCI)
+
+Quando o OCI Monitoring cria um alarme com webhook, ele envia um POST com `ConfirmationURL`. A aplicação faz GET nessa URL para confirmar a subscription automaticamente.
+
+```bash
+curl -X POST -u <user>:<password> \
+  -H "Content-Type: application/json" \
+  -d '{"ConfirmationURL": "https://httpbin.org/get"}' \
+  http://aquisicoes-sendnotify.cxmsolution.com.br/subscription
+```
+
+```json
+{"message": "Subscription confirmed"}
+```
+
+> Verifique os logs para confirmar: `kubectl logs -n monitoring -l app=sendnotify --tail=10`
+
+### 5. Teste alarme OCI
+
+```bash
+curl -X POST -u <user>:<password> \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "CPU Alta",
+    "severity": "CRITICAL",
+    "alarmMetaData": [{
+      "status": "FIRING",
+      "namespace": "oci_computeagent",
+      "query": "CpuUtilization > 90",
+      "alarmSummary": "CPU acima de 90%",
+      "metricValues": [95.2]
+    }]
+  }' \
+  http://aquisicoes-sendnotify.cxmsolution.com.br/subscription
+```
+
+### 6. Teste alarme AWS
+
+```bash
+curl -X POST -u <user>:<password> \
+  -H "Content-Type: application/json" \
+  -d '{
+    "Type": "Notification",
+    "Message": "{\"AlarmName\":\"CPU Alta\",\"NewStateValue\":\"ALARM\",\"Region\":\"us-east-1\",\"AWSAccountId\":\"123456\",\"NewStateReason\":\"Threshold Crossed\",\"Trigger\":{\"MetricName\":\"CPUUtilization\",\"Threshold\":90}}"
+  }' \
+  http://aquisicoes-sendnotify.cxmsolution.com.br/subscription
+```
+
+### 7. Teste alarme Azure
+
+```bash
+curl -X POST -u <user>:<password> \
+  -H "Content-Type: application/json" \
+  -d '{
+    "data": {
+      "essentials": {
+        "alertRule": "CPU Alta",
+        "severity": "Sev2",
+        "monitorCondition": "Fired",
+        "monitoringService": "Platform",
+        "description": "CPU acima de 90%",
+        "alertTargetIDs": ["/subscriptions/sub/resourceGroups/rg/providers/Microsoft.Compute/virtualMachines/vm01"]
+      },
+      "alertContext": {
+        "condition": {"metricName": "Percentage CPU", "metricValue": "95.3"}
+      }
+    }
+  }' \
+  http://aquisicoes-sendnotify.cxmsolution.com.br/subscription
+```
+
+### Resolução DNS (se necessário)
+
+Se o hostname ainda não resolver, adicione no `/etc/hosts`:
+
+```bash
+echo "<IP_DO_INGRESS> aquisicoes-sendnotify.cxmsolution.com.br" | sudo tee -a /etc/hosts
+```
+
+<div align="right">
+
+**[⬆️ Voltar ao topo](#-sendnotify)**
+
+</div>
+
+---
+
 ## 🛠️ Troubleshooting
 
 ### App retorna 200 mas mensagem não aparece no Google Chat
@@ -594,7 +714,7 @@ kubectl get secret -n monitoring s-sendnotify
 | Método | Rota | Autenticação | Descrição |
 |---|---|---|---|
 | `GET` | `/health` | ❌ | Health check para probes |
-| `POST` | `/subscription` | ✅ Basic Auth | Webhook principal (alarmes) |
+| `POST` | `/subscription` | ✅ Basic Auth | Webhook de providers (OCI/AWS/Azure) |
 | `POST` | `/send` | ✅ Basic Auth | Envio de texto livre |
 
 <div align="right">

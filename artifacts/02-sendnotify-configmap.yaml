@@ -2,10 +2,10 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: cm-sendnotify
-  namespace: observability
+  namespace: monitoring
   labels:
     app: sendnotify
 data:
-  TZ: "Timezone"
-  CLOUD: "Provider"
-  CLOUDID: "Nome_da_Cloud"
+  TZ: "America/Sao_Paulo"
+  CLOUD: "OCI"
+  CLOUDID: "Aquisicoes"
