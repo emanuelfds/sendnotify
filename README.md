@@ -1,6 +1,6 @@
 <div align="center">
 
-![SendNotify](images/sendnotify.png)
+![SendNotify](images/logo2.png)
 
 </div>
 
