@@ -204,76 +204,49 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 🔄 Checkout do repositório App-Manifest
+      - name: 🔄 Checkout main
         uses: actions/checkout@v7
         with:
           ref: 'main'
-          repository: ${{ github.repository }}
-          token: ${{ secrets.GIT_PAT }}
-          persist-credentials: true
 
-      - name: 🔁 Checkout deste repositório (com a action local)
-        uses: actions/checkout@v7
-        with:
-          path: 'app'  # evita sobrescrever o App-Manifest
-
-      - name: 👁️ Display Docker Metadata Output Version from build-and-push-image
+      - name: 👁️ Display version
         run: echo "VERSION=${{ needs.build-and-push-image.outputs.docker_version }}"
 
       - name: 🏷️ Atualizar tag da imagem no deployment
         run: |
           set -e
 
-          echo "🔧 Configurando Git"
-          git config user.email "${{ secrets.GIT_EMAIL }}"
-          git config user.name "${{ vars.GIT_USERNAME }}"
-
-          DEPLOYMENT_FILE="${{ vars.K8S_PATH }}/06-app-deployment.yaml"
-          CONFIGMAP_FILE="${{ vars.K8S_PATH }}/05-app-configmap.yaml"
           VERSION="${{ needs.build-and-push-image.outputs.docker_version }}"
-          REGISTRY="${{ env.REGISTRY }}"
-          IMAGE_NAME="${{ env.IMAGE_NAME }}"
+          DEPLOYMENT="artifacts/05-sendnotify-deployment.yaml"
 
-          if [[ -z "$DEPLOYMENT_FILE" || -z "$VERSION" || -z "$REGISTRY" || -z "$IMAGE_NAME" ]]; then
-            echo "❌ Erro: Variável obrigatória não definida."
-            echo "🔎 DEPLOYMENT_FILE: $DEPLOYMENT_FILE"
-            echo "🔎 VERSION: $VERSION"
-            echo "🔎 REGISTRY: $REGISTRY"
-            echo "🔎 IMAGE_NAME: $IMAGE_NAME"
-            exit 1
-          fi
-
-          echo "📂 Diretório atual:"
-          pwd
-
-          echo "📄 Conteúdo do arquivo de deployment (antes da alteração):"
-          cat "$DEPLOYMENT_FILE"
+          echo "📂 Diretório: $(pwd)"
+          echo "📄 Deployment antes:"
+          cat "$DEPLOYMENT"
 
           echo "🛠️ Atualizando tag da imagem..."
-          sed -i "s#${REGISTRY}/${IMAGE_NAME}[^ \"\']*#${REGISTRY}/${IMAGE_NAME}:${VERSION}#g" "$DEPLOYMENT_FILE"
+          sed -i "s#emanuelfds/sendnotify:[^\"]*#emanuelfds/sendnotify:${VERSION}#g" "$DEPLOYMENT"
+          sed -i "s#\(version: \"\)[^\"]*\(\".*\)#\1${VERSION}\2#" "$DEPLOYMENT"
 
-          echo "🔄 Atualizando campo 'version'..."
-          sed -i "s/\(version: \"\)[^\"]*\(\".*\)/\1${VERSION}\2/" "$DEPLOYMENT_FILE"
-          sed -i "s/\(APP_VERSION: \"\)[^\"]*\(\".*\)/\1${VERSION}\2/" "$CONFIGMAP_FILE"
-
-          echo "✅ Arquivo atualizado:"
-          cat "$DEPLOYMENT_FILE"
+          echo "📄 Deployment depois:"
+          cat "$DEPLOYMENT"
 
           if git diff --quiet; then
             echo "🆗 Nenhuma alteração detectada, pulando commit."
           else
-            git add .
+            git config user.email "sendnotify-bot@users.noreply.github.com"
+            git config user.name "sendnotify-bot"
+            git add "$DEPLOYMENT"
             git commit -m "🔖 Nova versão da Aplicação: ${VERSION}"
             git push origin main --force-with-lease
           fi
 
       - name: 📢 Notificar Slack - Deploy
         if: success()
-        uses: ./app/.github/actions/notificar-slack
+        uses: ./.github/actions/notificar-slack
         with:
           webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
           version: ${{ needs.build-and-push-image.outputs.docker_version }}
-          image: ${{ env.IMAGE_NAME }}
+          image: emanuelfds/sendnotify
           repo: ${{ github.repository }}
           sha: ${{ github.sha }}
           ref: ${{ github.ref_name }}
