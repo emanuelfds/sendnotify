@@ -184,3 +184,15 @@ jobs:
         if: always()
         with:
           sarif_file: 'trivy-results-ghcr.sarif'
+
+      - name: 📢 Notificar Slack
+        if: success()
+        uses: ./.github/actions/notificar-slack
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          version: ${{ steps.meta.outputs.version }}
+          image: emanuelfds/sendnotify
+          repo: ${{ github.repository }}
+          sha: ${{ github.sha }}
+          ref: ${{ github.ref_name }}
+          actor: ${{ github.actor }}
