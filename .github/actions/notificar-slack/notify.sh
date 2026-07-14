@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-for var in SLACK_WEBHOOK_URL VERSION IMAGE_NAME REPO SHA REF_NAME ACTOR; do
+for var in SLACK_WEBHOOK_URL VERSION IMAGE_NAME REPO SHA REF_NAME ACTOR TITLE; do
   if [ -z "${!var:-}" ]; then
     echo "::error::Variável obrigatória não definida: $var"
     exit 1
@@ -21,7 +21,7 @@ HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
       \"type\": \"header\",
       \"text\": {
         \"type\": \"plain_text\",
-        \"text\": \"Build Realizado com Sucesso!\",
+        \"text\": \"${TITLE}\",
         \"emoji\": true
       }
     },

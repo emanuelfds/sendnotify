@@ -22,6 +22,10 @@ inputs:
   actor:
     description: "Usuário que executou o workflow"
     required: true
+  title:
+    description: "Título da notificação"
+    required: false
+    default: "Build Realizado com Sucesso!"
 
 runs:
   using: "composite"
@@ -36,3 +40,4 @@ runs:
         SHA: ${{ inputs.sha }}
         REF_NAME: ${{ inputs.ref }}
         ACTOR: ${{ inputs.actor }}
+        TITLE: ${{ inputs.title }}
