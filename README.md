@@ -4,7 +4,7 @@
 
 </div>
 
-[![Python](https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white)](https://python.org)
+[![Python](https://img.shields.io/badge/Python-3.12+-blue?logo=python&logoColor=white)](https://python.org)
 [![Flask](https://img.shields.io/badge/Flask-2.3-blue?logo=flask&logoColor=white)](https://flask.palletsprojects.com)
 [![Docker](https://img.shields.io/badge/Docker-Alpine-0db7ed?logo=docker&logoColor=white)](https://docker.com)
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-1.28+-326CE5?logo=kubernetes&logoColor=white)](https://kubernetes.io)
@@ -71,6 +71,8 @@ A aplicação **detecta automaticamente** qual nuvem enviou o alerta, normaliza 
 | Endpoint de teste (/send) | ✅ |
 | Probes Kubernetes (liveness + readiness) | ✅ |
 | Node affinity para nós monitoring | ✅ |
+| Security hardening (runAsNonRoot, seccompProfile, capabilities drop) | ✅ |
+| CI/CD Pipeline (Trivy, Black, Ruff, MyPy, Slack notification) | ✅ |
 | Testes offline com mocks | ✅ |
 | Pronto para Docker | ✅ |
 
@@ -134,9 +136,9 @@ sendnotify/
 ├── build/                          # Código fonte e imagem
 │   ├── main.py                     # App Flask (endpoints /subscription, /send, /health)
 │   ├── wsgi.py                     # Entrypoint para gunicorn
-│   ├── app.py                      # Atalho para python app.py
+│   ├── app.py                      # Entry point alternativo (dev)
 │   ├── requirements.txt            # Dependências
-│   ├── Dockerfile                  # Imagem Docker (python:3.10-alpine)
+│   ├── Dockerfile                  # Imagem Docker (python:3.12-alpine)
 │   │
 │   ├── providers/                  # Normalizadores multi-cloud
 │   │   ├── __init__.py             # Registry + auto-detect
@@ -146,6 +148,7 @@ sendnotify/
 │   │
 │   └── tests/                      # Testes com mocks offline
 │       ├── test_providers.py       # Script de validação
+│       ├── README.md               # Documentação dos testes
 │       └── samples/                # 8 payloads mock de exemplo
 │
 ├── artifacts/                      # Manifestos Kubernetes
@@ -154,9 +157,28 @@ sendnotify/
 │   ├── 03-sendnotify-secret.yaml     # Template da Secret (NÃO commit com creds reais)
 │   ├── 04-sendnotify-service.yaml    # Service (headless)
 │   ├── 05-sendnotify-deployment.yaml # Deployment com probes + affinity
-│   └── 06-sendnotify-ingress.yaml    # Ingress com TLS
+│   └── 06-sendnotify-ingress.yaml    # Ingress HTTP
 │
+├── .github/
+│   ├── workflows/
+│   │   ├── deploy.yaml              # CI/CD: lint, test, build, push, Trivy, Slack
+│   │   └── release-please.yaml      # Release automático via conventional commits
+│   └── actions/
+│       └── notificar-slack/
+│           ├── action.yaml           # Composite action para Slack
+│           └── notify.sh             # Script de notificação
+│
+├── images/
+│   └── sendnotify.png               # Logo do projeto
+│
+├── .dockerignore                    # Exclusões do Docker build
 ├── .gitignore
+├── .pre-commit-config.yaml          # Hooks: ruff, black, mypy, whitespace
+├── pyproject.toml                   # Config de Black, Ruff, MyPy
+├── CONTRIBUTING.md                  # Guia de commits e releases
+├── CHANGELOG.md                     # Changelog automático (release-please)
+├── .release-please-manifest.json    # Versão atual (release-please)
+├── release-please-config.json       # Config do release-please
 └── README.md
 ```
 
@@ -477,7 +499,7 @@ kubectl create secret generic s-sendnotify \
   --from-literal=AUTH_USER=<seu_usuario> \
   --from-literal=AUTH_PASS=<sua_senha> \
   --from-literal=WEBHOOK='URL_DO_WEBHOOK' \
-  --namespace=monitoring
+  --namespace=observability
 ```
 
 > ⚠️ O arquivo `03-sendnotify-secret.yaml` é um **template**. Nunca commitar com credenciais reais.
@@ -495,8 +517,8 @@ kubectl apply -f artifacts/06-sendnotify-ingress.yaml
 ### 3. Verifique
 
 ```bash
-kubectl get pods -n monitoring -l app=sendnotify
-kubectl logs -n monitoring -l app=sendnotify --tail=50
+kubectl get pods -n observability -l app=sendnotify
+kubectl logs -n observability -l app=sendnotify --tail=50
 ```
 
 <div align="right">
@@ -560,7 +582,7 @@ Após aplicar os manifestos do Kubernetes, teste os endpoints pelo hostname conf
 ### 1. Verifique o Ingress
 
 ```bash
-kubectl get ingress -n monitoring sendnotify-ingress
+kubectl get ingress -n observability in-sendnotify
 ```
 
 Copie o IP da coluna `ADDRESS`.
@@ -599,7 +621,7 @@ curl -X POST -u <user>:<password> \
 {"message": "Subscription confirmed"}
 ```
 
-> Verifique os logs para confirmar: `kubectl logs -n monitoring -l app=sendnotify --tail=10`
+> Verifique os logs para confirmar: `kubectl logs -n observability -l app=sendnotify --tail=10`
 
 ### 5. Teste alarme OCI
 
@@ -703,14 +725,14 @@ Se o payload for de uma nuvem não suportada, será necessário [adicionar um no
 ### Pod no Kubernetes não inicia
 
 ```bash
-kubectl describe pod -n monitoring -l app=sendnotify
-kubectl logs -n monitoring -l app=sendnotify
+kubectl describe pod -n observability -l app=sendnotify
+kubectl logs -n observability -l app=sendnotify
 ```
 
 Verifique se a Secret `s-sendnotify` existe:
 
 ```bash
-kubectl get secret -n monitoring s-sendnotify
+kubectl get secret -n observability s-sendnotify
 ```
 
 <div align="right">
@@ -734,6 +756,12 @@ kubectl get secret -n monitoring s-sendnotify
 **[🔼 Voltar ao topo](#-sendnotify)**
 
 </div>
+
+---
+
+## 🤝 Contribuindo
+
+Consulte o [CONTRIBUTING.md](CONTRIBUTING.md) para guia de commits convencionais, fluxo de release e configuração de pre-commit.
 
 ---
 
