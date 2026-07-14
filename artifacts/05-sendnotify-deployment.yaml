@@ -12,7 +12,7 @@ spec:
     metadata:
       labels:
         app: sendnotify
-        version: "1.0.0"
+        version: "1.2.1"
     spec:
       serviceAccountName: sa-sendnotify
       securityContext:
@@ -32,7 +32,7 @@ spec:
                 - services
       containers:
       - name: sendnotify
-        image: emanuelfds/sendnotify:1.0.0
+        image: emanuelfds/sendnotify:1.2.1
         imagePullPolicy: Always
         securityContext:
           allowPrivilegeEscalation: false
