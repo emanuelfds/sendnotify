@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.2](https://github.com/emanuelfds/sendnotify/compare/v1.2.1...v1.2.2) (2026-07-14)
+
+
+### Bug Fixes
+
+* adiciona environment protection no deploy-argocd ([9776b79](https://github.com/emanuelfds/sendnotify/commit/9776b79dfcd459306ab0f1d6afb51f415c6e5e4b))
+
 ## [1.2.1](https://github.com/emanuelfds/sendnotify/compare/v1.2.0...v1.2.1) (2026-07-14)
 
 
