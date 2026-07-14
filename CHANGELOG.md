@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.2.0](https://github.com/emanuelfds/sendnotify/compare/v1.1.3...v1.2.0) (2026-07-14)
+
+
+### Features
+
+* adiciona notificação Slack para builds de sucesso ([6b46d5e](https://github.com/emanuelfds/sendnotify/commit/6b46d5e729a5c04cf29eeba0e700caf0918fe783))
+
+
+### Bug Fixes
+
+* adiciona validação de variáveis de ambiente no startup ([c233195](https://github.com/emanuelfds/sendnotify/commit/c233195b0684a7cb69e4328b46c0c54edf04b5bb))
+
 ## [1.1.3](https://github.com/emanuelfds/sendnotify/compare/v1.1.2...v1.1.3) (2026-07-13)
 
 
