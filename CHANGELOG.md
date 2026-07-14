@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.1](https://github.com/emanuelfds/sendnotify/compare/v1.2.0...v1.2.1) (2026-07-14)
+
+
+### Bug Fixes
+
+* adiciona token PAT no checkout do deploy-argocd ([90f828f](https://github.com/emanuelfds/sendnotify/commit/90f828fbaa4eb971ffd4e40b1a3e1d102763d884))
+* corrige deploy-argocd e adiciona notificações Slack diferenciadas ([de2958e](https://github.com/emanuelfds/sendnotify/commit/de2958ea7f59c3e84e65139b287636fd8ce6ab98))
+
 ## [1.2.0](https://github.com/emanuelfds/sendnotify/compare/v1.1.3...v1.2.0) (2026-07-14)
 
 
