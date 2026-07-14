@@ -20,6 +20,13 @@ def load_users():
         users[user] = generate_password_hash(password)
 
 
+def validate_env():
+    missing = [v for v in ("WEBHOOK", "AUTH_USER", "AUTH_PASS") if not os.environ.get(v)]
+    if missing:
+        logging.warning("Variáveis de ambiente ausentes: %s", ", ".join(missing))
+
+
+validate_env()
 load_users()
 
 
