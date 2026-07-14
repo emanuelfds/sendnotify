@@ -13,8 +13,20 @@
 [![Azure](https://img.shields.io/badge/Azure-0078D4?logo=microsoftazure&logoColor=white)](https://azure.microsoft.com)
 [![Google Chat](https://img.shields.io/badge/Google_Chat-34A853?logo=googlechat&logoColor=white)](https://chat.google.com)
 [![License](https://img.shields.io/badge/License-MIT-green?logo=opensourceinitiative&logoColor=white)](LICENSE)
+[![Build](https://github.com/emanuelfds/sendnotify/actions/workflows/deploy.yaml/badge.svg)](https://github.com/emanuelfds/sendnotify/actions/workflows/deploy.yaml)
+[![Release](https://img.shields.io/github/v/release/emanuelfds/sendnotify)](https://github.com/emanuelfds/sendnotify/releases/latest)
+[![Trivy Scanning](https://img.shields.io/badge/Trivy-Scanning-brightgreen?logo=trivy&logoColor=white)](https://github.com/aquasecurity/trivy)
 
 # 📨 SendNotify
+
+## Why SendNotify?
+
+- **Multi-cloud em um único endpoint** — integra OCI, AWS e Azure no mesmo webhook, sem manter 3 integrações separadas
+- **Auto-detection** — detecta o provedor automaticamente pelo payload, sem configuração
+- **Normalização** — payloads diferentes → formato único para Google Chat
+- **Zero vendor lock-in** — não depende de ferramentas proprietárias de cada cloud
+
+---
 
 **SendNotify** é um webhook bridge **multi-cloud** que recebe alertas de **OCI Monitoring**, **AWS CloudWatch** e **Azure Monitor** e os encaminha para o **Google Chat**.
 
@@ -450,6 +462,203 @@ curl -X POST -H "Content-Type: application/json" \
   }' \
   http://localhost:8080/subscription
 ```
+</details>
+
+<div align="right">
+
+**[🔼 Voltar ao topo](#-sendnotify)**
+
+</div>
+
+---
+
+## 📦 Payloads de Exemplo
+
+Como os payloads dos provedores são normalizados para o formato do Google Chat.
+
+<details>
+<summary><b>🔴 OCI Monitoring (FIRING)</b></summary>
+
+**Input** (enviado pelo OCI Monitoring):
+
+```json
+{
+  "title": "CPU > 90%",
+  "severity": "CRITICAL",
+  "body": "Alerta de CPU alta",
+  "alarmMetaData": [
+    {
+      "status": "FIRING",
+      "namespace": "oci_computeagent",
+      "query": "CpuUtilization[5m] > 90",
+      "alarmSummary": "CPU acima de 90% nos últimos 5 minutos",
+      "metricValues": ["95.3"]
+    }
+  ]
+}
+```
+
+**Output** (normalizado para Google Chat):
+
+```
+🔥 FIRING 🔥
+
+*Alarm*: CPU > 90%
+*Severity*: CRITICAL
+*Namespace*: oci_computeagent
+*Query*: CpuUtilization[5m] > 90
+*Summary*: CPU acima de 90% nos últimos 5 minutos
+*Metric Values*: ['95.3']
+*Body*: Alerta de CPU alta
+```
+
+</details>
+
+<details>
+<summary><b>🟢 OCI Monitoring (RESOLVED)</b></summary>
+
+**Input**:
+
+```json
+{
+  "title": "CPU > 90%",
+  "severity": "CRITICAL",
+  "alarmMetaData": [
+    {
+      "status": "OK",
+      "namespace": "oci_computeagent",
+      "query": "CpuUtilization[5m] > 90",
+      "alarmSummary": "CPU normalizada"
+    }
+  ]
+}
+```
+
+**Output**:
+
+```
+✅ RESOLVED ✅
+
+*Alarm*: CPU > 90%
+*Severity*: CRITICAL
+*Namespace*: oci_computeagent
+*Query*: CpuUtilization[5m] > 90
+*Summary*: CPU normalizada
+```
+
+</details>
+
+<details>
+<summary><b>🟠 AWS CloudWatch / SNS (FIRING)</b></summary>
+
+**Input** (enviado pelo SNS):
+
+```json
+{
+  "Type": "Notification",
+  "Message": "{\"AlarmName\":\"High-CPU-Prod\",\"NewStateValue\":\"ALARM\",\"OldStateValue\":\"OK\",\"NewStateReason\":\"Threshold Crossed: 1 out of the last 1 datapoints [95.2 (13/07/26 18:00)] was greater than the threshold (90.0)\",\"Region\":\"sa-east-1\",\"AWSAccountId\":\"123456789012\",\"Trigger\":{\"MetricName\":\"CPUUtilization\",\"Namespace\":\"AWS/EC2\",\"Threshold\":90}}"
+}
+```
+
+> O campo `Message` é um JSON **stringificado** dentro do payload. O normalizer faz o `json.loads()` automaticamente.
+
+**Output**:
+
+```
+🔥 FIRING 🔥
+
+*Alarm*: High-CPU-Prod
+*Account*: 123456789012
+*Region*: sa-east-1
+*State*: OK → ALARM
+*Reason*: Threshold Crossed: 1 out of the last 1 datapoints [95.2 (13/07/26 18:00)] was greater than the threshold (90.0)
+*Metric*: CPUUtilization
+*Threshold*: 90
+*Severity*: CRITICAL
+*Namespace*: AWS/EC2
+*Query*: CPUUtilization
+*Summary*: Threshold Crossed: 1 out of the last 1 datapoints [95.2 (13/07/26 18:00)] was greater than the threshold (90.0)
+*Metric Values*: [90]
+*Body*: Account: 123456789012
+Region: sa-east-1
+State: OK → ALARM
+Reason: Threshold Crossed: 1 out of the last 1 datapoints [95.2 (13/07/26 18:00)] was greater than the threshold (90.0)
+Metric: CPUUtilization
+Threshold: 90
+```
+
+</details>
+
+<details>
+<summary><b>🔵 Azure Monitor (FIRING)</b></summary>
+
+**Input** (enviado pelo Action Group):
+
+```json
+{
+  "data": {
+    "essentials": {
+      "alertRule": "High-CPU-Alert",
+      "monitorCondition": "Fired",
+      "severity": "Sev2",
+      "description": "CPU acima de 90% no namespace principal",
+      "signalType": "Metric",
+      "monitoringService": "Azure Monitor",
+      "alertTargetIDs": [
+        "/subscriptions/aaa-bbb-ccc/resourceGroups/myRG/providers/Microsoft.Compute/virtualMachines/myVM"
+      ]
+    },
+    "alertContext": {
+      "condition": {
+        "metricName": "Percentage CPU",
+        "metricValue": "95.2"
+      }
+    }
+  }
+}
+```
+
+**Output**:
+
+```
+🔥 FIRING 🔥
+
+*Alarm*: High-CPU-Alert
+*Signal*: Metric
+*Service*: Azure Monitor
+*Condition*: Fired
+*Description*: CPU acima de 90% no namespace principal
+*Metric*: Percentage CPU = 95.2
+*Resource*: myVM
+*Severity*: WARNING
+*Namespace*: Azure Monitor
+*Query*: Percentage CPU
+*Summary*: CPU acima de 90% no namespace principal
+*Metric Values*: ['95.2']
+*Body*: Signal: Metric
+Service: Azure Monitor
+Condition: Fired
+Description: CPU acima de 90% no namespace principal
+Metric: Percentage CPU = 95.2
+Resource: myVM
+```
+
+</details>
+
+<details>
+<summary><b>📋 Tabela de Mapeamento de Severidade</b></summary>
+
+| OCI | AWS | Azure | SendNotify |
+|-----|-----|-------|------------|
+| `CRITICAL` | `ALARM` | `Sev0`, `Sev1` | `CRITICAL` |
+| — | `INSUFFICIENT_DATA` | `Sev2`, `Sev3` | `WARNING` |
+| — | `OK` | `Sev4`, `Sev5` | `INFO` |
+
+| OCI | AWS | Azure | SendNotify |
+|-----|-----|-------|------------|
+| `FIRING` | `ALARM` | `Fired` | `FIRING` |
+| `OK` | `OK` | `Resolved` | `RESOLVED` |
+
 </details>
 
 <div align="right">
