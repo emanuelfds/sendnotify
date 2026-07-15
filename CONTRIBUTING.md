@@ -61,16 +61,31 @@ BREAKING CHANGE: o campo 'text' agora é obrigatório"
 ## Fluxo de release
 
 ```
-branch hml ──commit──► merge p/ main ──► release-please cria Release PR ──► merge PR ──► tag v* ──► deploy
+branch fix/feat/chore ──commit──► PR p/ main ──► merge ──► release-please cria Release PR ──► merge PR ──► tag v* ──► deploy
 ```
 
-1. Faça commits na branch `hml` com mensagens convencionais
-2. Abra um PR de `hml` → `main`
+1. Faça commits em branches auxiliares (`feat/*`, `fix/*`, `chore/*`) com mensagens convencionais
+2. Abra um PR para `main`
 3. Após o merge, o **release-please** cria/atualiza um Release PR automaticamente
 4. Ao merge do Release PR:
    - Gera o `CHANGELOG.md`
    - Cria a tag `v*`
    - Dispara o workflow de deploy (build + push imagem)
+
+## Branch Protection
+
+A branch `main` possui proteções obrigatórias:
+
+- **PR review**: todo PR precisa de pelo menos 1 approval
+- **Status checks**: CI (lint + test) e Trivy devem passar antes do merge
+- **Signed commits** (recomendado): usar `git commit -S`
+- **Force push**: desabilitado na branch `main`
+
+### Regras
+
+- Nunca faça push direto para `main`
+- Use branches auxiliares (`feat/*`, `fix/*`, `chore/*`)
+- Squash merge para manter histórico limpo
 
 ## Pré-commit
 

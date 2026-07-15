@@ -9,3 +9,4 @@ data:
   TZ: "America/Recife"
   CLOUD: "SUA_CLOUD"
   CLOUDID: "SUA_ACCOUNT"
+  FLASK_DEBUG: "False"

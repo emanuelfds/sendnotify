@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 from . import register
 
 
@@ -13,7 +14,8 @@ def normalize_oci(data):
             "details": {},
         }
 
-    alarm = data.get("alarmMetaData", [{}])[0]
+    alarms = data.get("alarmMetaData", [])
+    alarm = alarms[0] if alarms else {}
 
     title = data.get("title", "")
     severity = data.get("severity", "")

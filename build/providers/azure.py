@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 from . import register
 
 SEVERITY_MAP = {

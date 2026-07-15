@@ -5,7 +5,7 @@
 </div>
 
 [![Python](https://img.shields.io/badge/Python-3.12+-blue?logo=python&logoColor=white)](https://python.org)
-[![Flask](https://img.shields.io/badge/Flask-2.3-blue?logo=flask&logoColor=white)](https://flask.palletsprojects.com)
+[![Flask](https://img.shields.io/badge/Flask-3.1-blue?logo=flask&logoColor=white)](https://flask.palletsprojects.com)
 [![Docker](https://img.shields.io/badge/Docker-Alpine-0db7ed?logo=docker&logoColor=white)](https://docker.com)
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-1.28+-326CE5?logo=kubernetes&logoColor=white)](https://kubernetes.io)
 [![OCI](https://img.shields.io/badge/OCI-F80000?logo=oracle&logoColor=white)](https://oracle.com/cloud)
@@ -16,6 +16,9 @@
 [![Build](https://github.com/emanuelfds/sendnotify/actions/workflows/deploy.yaml/badge.svg)](https://github.com/emanuelfds/sendnotify/actions/workflows/deploy.yaml)
 [![Release](https://img.shields.io/github/v/release/emanuelfds/sendnotify)](https://github.com/emanuelfds/sendnotify/releases/latest)
 [![Trivy Scanning](https://img.shields.io/badge/Trivy-Scanning-brightgreen?logo=trivy&logoColor=white)](https://github.com/aquasecurity/trivy)
+[![Bandit](https://img.shields.io/badge/Bandit-SAST-yellow?logo=python&logoColor=white)](https://bandit.readthedocs.io)
+[![Gitleaks](https://img.shields.io/badge/Gitleaks-Secrets-orange?logo=gitguardian&logoColor=white)](https://github.com/gitleaks/gitleaks)
+[![Hadolint](https://img.shields.io/badge/Hadolint-Dockerfile-blue?logo=docker&logoColor=white)](https://github.com/hadolint/hadolint)
 
 # 📨 SendNotify
 
@@ -38,6 +41,7 @@ A aplicação **detecta automaticamente** qual nuvem enviou o alerta, normaliza 
 
 - [🎯 Visão Geral](#-visão-geral)
 - [⚙️ Funcionalidades](#️-funcionalidades)
+- [🛡️ Segurança](#️-segurança)
 - [🏗️ Fluxo](#️-fluxo)
 - [📁 Estrutura do Projeto](#-estrutura-do-projeto)
 - [💻 Pré-requisitos](#-pré-requisitos)
@@ -49,9 +53,11 @@ A aplicação **detecta automaticamente** qual nuvem enviou o alerta, normaliza 
 - [🐳 Testar com Docker](#-testar-com-docker)
 - [☸️ Deploy no Kubernetes](#️-deploy-no-kubernetes)
 - [🧪 Testar com Mocks](#-testar-com-mocks)
+- [📦 Instalar via pip](#-instalar-via-pip)
 - [🌐 Testar via Ingress (URL pública)](#-testar-via-ingress-url-pública)
 - [🛠️ Troubleshooting](#️-troubleshooting)
 - [📬 Endpoints](#-endpoints)
+- [🤝 Contribuindo](#-contribuindo)
 
 ---
 
@@ -85,8 +91,65 @@ A aplicação **detecta automaticamente** qual nuvem enviou o alerta, normaliza 
 | Node affinity para nós monitoring | ✅ |
 | Security hardening (runAsNonRoot, seccompProfile, capabilities drop) | ✅ |
 | CI/CD Pipeline (Trivy, Black, Ruff, MyPy, Slack notification) | ✅ |
+| SAST (Bandit) | ✅ |
+| Secret Scanning (Gitleaks) | ✅ |
+| Dockerfile Lint (Hadolint) | ✅ |
+| Dependency Audit (pip-audit) | ✅ |
 | Testes offline com mocks | ✅ |
 | Pronto para Docker | ✅ |
+
+<div align="right">
+
+**[🔼 Voltar ao topo](#-sendnotify)**
+
+</div>
+
+---
+
+## 🛡️ Segurança
+
+O pipeline de CI/CD utiliza múltiplas ferramentas de segurança:
+
+| Ferramenta | Tipo | O que detecta |
+|---|---|---|
+| **Trivy** | Vulnerability Scanning | CVEs em dependências, imagens Docker, manifests K8s |
+| **Bandit** | SAST (Python) | `eval()`, `exec()`, SQL injection, hardcoded passwords |
+| **Gitleaks** | Secret Scanning | Chaves, tokens, senhas no histórico git |
+| **Hadolint** | Dockerfile Lint | Boas práticas de segurança em Dockerfiles |
+| **pip-audit** | Dependency Audit | CVEs known em pacotes Python |
+| **SBOM** | Software Bill of Materials | Lista completa de dependências |
+| **Cosign** | Image Signing | Assinatura criptográfica da imagem Docker |
+
+### Configuração no pipeline
+
+```
+Jobs:
+  security     → Trivy (repo, app, k8s)
+  sast         → Bandit + Gitleaks + Hadolint
+  ci           → Ruff, Black, Mypy, Pytest, pip-audit
+  build-and-push → Build, Trivy image, SBOM, Cosign
+  deploy-argocd → Deploy ArgoCD (environment: production)
+```
+
+### Como rodar as ferramentas localmente
+
+```bash
+# Bandit (SAST)
+pip install bandit
+bandit -r build/ -ll --skip B101
+
+# Gitleaks (Secret Scanning)
+# Requer gitleaks CLI: https://github.com/gitleaks/gitleaks
+gitleaks detect --source .
+
+# Hadolint (Dockerfile Lint)
+# Requer hadolint CLI: https://github.com/hadolint/hadolint
+hadolint build/Dockerfile
+
+# pip-audit (Dependency Audit)
+pip install pip-audit
+pip-audit -r build/requirements.txt
+```
 
 <div align="right">
 
@@ -146,9 +209,9 @@ A aplicação **detecta automaticamente** qual nuvem enviou o alerta, normaliza 
 sendnotify/
 │
 ├── build/                          # Código fonte e imagem
+│   ├── __init__.py             # Pacote raiz (importável via pip install -e .)
 │   ├── main.py                     # App Flask (endpoints /subscription, /send, /health)
 │   ├── wsgi.py                     # Entrypoint para gunicorn
-│   ├── app.py                      # Entry point alternativo (dev)
 │   ├── requirements.txt            # Dependências
 │   ├── Dockerfile                  # Imagem Docker (python:3.12-alpine)
 │   │
@@ -159,7 +222,8 @@ sendnotify/
 │   │   └── azure.py                # Azure Monitor
 │   │
 │   └── tests/                      # Testes com mocks offline
-│       ├── test_providers.py       # Script de validação
+│       ├── conftest.py             # sys.path para pytest imports
+│       ├── test_providers.py       # Testes pytest (detect + normalize)
 │       ├── README.md               # Documentação dos testes
 │       └── samples/                # 8 payloads mock de exemplo
 │
@@ -204,7 +268,7 @@ sendnotify/
 
 ## 💻 Pré-requisitos
 
-- **Python 3.10+**
+- **Python 3.12+**
 - **curl**
 - **Docker** (opcional, para teste com container)
 - **kubectl** (opcional, para deploy no Kubernetes)
@@ -230,7 +294,7 @@ cd /caminho/do/sendnotify
 
 ### 2. Crie o ambiente virtual
 
-IsoIa as dependências do projeto:
+Instale as dependências do projeto:
 
 ```bash
 python3 -m venv .venv
@@ -244,6 +308,12 @@ Você verá `(.venv)` no início do terminal.
 ```bash
 pip install -r build/requirements.txt
 ```
+
+> **Ou**, se preferir instalar como pacote (com ferramentas de dev):
+>
+> ```bash
+> pip install -e ".[dev]"
+> ```
 
 ### 4. Configure as variáveis de ambiente
 
@@ -743,22 +813,31 @@ kubectl logs -n observability -l app=sendnotify --tail=50
 Valida todos os normalizadores **sem precisar de webhook ou servidor rodando**:
 
 ```bash
-python3 build/tests/test_providers.py
+pytest -v
 ```
 
 Saída esperada:
 
 ```
-=== Detect ===
-  ✓ todos os 8 payloads detectados corretamente
+build/tests/test_providers.py::test_detect[oci-confirmation.json] PASSED
+build/tests/test_providers.py::test_detect[oci-firing.json] PASSED
+build/tests/test_providers.py::test_detect[oci-resolved.json] PASSED
+build/tests/test_providers.py::test_detect[aws-confirmation.json] PASSED
+build/tests/test_providers.py::test_detect[aws-firing.json] PASSED
+build/tests/test_providers.py::test_detect[aws-resolved.json] PASSED
+build/tests/test_providers.py::test_detect[azure-firing.json] PASSED
+build/tests/test_providers.py::test_detect[azure-resolved.json] PASSED
+build/tests/test_providers.py::test_normalize[oci-confirmation.json] PASSED
+build/tests/test_providers.py::test_normalize[oci-firing.json] PASSED
+build/tests/test_providers.py::test_normalize[oci-resolved.json] PASSED
+build/tests/test_providers.py::test_normalize[aws-confirmation.json] PASSED
+build/tests/test_providers.py::test_normalize[aws-firing.json] PASSED
+build/tests/test_providers.py::test_normalize[aws-resolved.json] PASSED
+build/tests/test_providers.py::test_normalize[azure-firing.json] PASSED
+build/tests/test_providers.py::test_normalize[azure-resolved.json] PASSED
+build/tests/test_providers.py::test_unknown_payload PASSED
 
-=== Normalize ===
-  ✓ todos os status mapeados (FIRING / RESOLVED)
-
-=== Unknown ===
-  ✓ payload desconhecido retorna None
-
-→ Todos os testes passaram!
+============================== 17 passed in 0.03s ==============================
 ```
 
 Payloads de exemplo disponíveis em `build/tests/samples/`:
@@ -773,6 +852,79 @@ Payloads de exemplo disponíveis em `build/tests/samples/`:
 | `aws-resolved.json` | AWS | Resolvido |
 | `azure-firing.json` | Azure | Disparando |
 | `azure-resolved.json` | Azure | Resolvido |
+
+<div align="right">
+
+**[🔼 Voltar ao topo](#-sendnotify)**
+
+</div>
+
+---
+
+## 📦 Instalar via pip
+
+O projeto é um pacote Python. Você pode instalar com `pip` para usar os normalizadores
+fora do Docker ou para desenvolvimento local.
+
+### Instalação para desenvolvimento
+
+```bash
+# Criar ambiente virtual
+python3 -m venv .venv
+source .venv/bin/activate
+
+# Instalar em modo editável (com dependências de dev)
+pip install -e ".[dev]"
+
+# Rodar testes
+pytest -v
+
+# Lint & format
+ruff check .
+black --check .
+mypy .
+```
+
+### Instalação apenas dependências
+
+```bash
+pip install -e .
+```
+
+### Como funciona
+
+O `pyproject.toml` define o pacote `sendnotify` com todas as dependências
+em `dependencies`. Ao rodar `pip install -e .`, o pip:
+
+1. Instala o pacote em **modo editável** (alterações refletem imediatamente)
+2. Instala todas as dependências automaticamente
+3. Torna `providers` importável de qualquer diretório
+
+### Usar os normalizadores como biblioteca
+
+```python
+from providers import detect, normalize
+
+payload = {
+    "title": "CPU Alta",
+    "severity": "CRITICAL",
+    "alarmMetaData": [{
+        "status": "FIRING",
+        "namespace": "oci_computeagent",
+        "query": "CpuUtilization > 90",
+        "alarmSummary": "CPU acima de 90%",
+        "metricValues": [95.2]
+    }]
+}
+
+provider = detect(payload)   # "oci"
+message  = normalize(payload) # dict com campos normalizados
+```
+
+### Docker
+
+O Dockerfile continua usando `requirements.txt` para manter a imagem leve
+(sem ferramentas de dev como pytest, black, ruff).
 
 <div align="right">
 
@@ -926,7 +1078,7 @@ echo "<IP_DO_INGRESS> sendnotify.emanuelfds.com.br" | sudo tee -a /etc/hosts
 Execute o script de mocks para validar o payload:
 
 ```bash
-python3 build/tests/test_providers.py
+pytest -v
 ```
 
 Se o payload for de uma nuvem não suportada, será necessário [adicionar um novo provider](#-visão-geral).

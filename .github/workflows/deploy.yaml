@@ -5,149 +5,177 @@ on:
     tags:
       - 'v*'
 
-permissions: write-all
+permissions:
+  contents: write
+  packages: write
+  security-events: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  trivy-scanning:
-    name: 🔍 Trivy Scan
+  security:
+    name: 🔍 Trivy Scan (${{ matrix.label }})
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: Repo
+            scan-type: fs
+            scan-ref: '.'
+            category: TrivyScanRepo
+            severity: HIGH,CRITICAL
+          - label: App
+            scan-type: config
+            scan-ref: './build'
+            category: TrivyScanApp
+            severity: CRITICAL,HIGH,MEDIUM
+          - label: K8s
+            scan-type: config
+            scan-ref: './artifacts'
+            category: TrivyScanK8s
+            severity: CRITICAL,HIGH,MEDIUM
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v7
+      - name: 🚪 Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
-      - name: Run Trivy vulnerability scanner in repo mode
-        uses: aquasecurity/trivy-action@v0.36.0
+      - name: 🔍 Run Trivy scan
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          scan-type: 'fs'
-          ignore-unfixed: true
+          scan-type: ${{ matrix.scan-type }}
+          scan-ref: ${{ matrix.scan-ref }}
           format: 'sarif'
           output: 'trivy-results.sarif'
-          severity: 'HIGH,CRITICAL'
+          exit-code: '0'
+          ignore-unfixed: true
+          severity: ${{ matrix.severity }}
+          hide-progress: true
 
-      - name: Save Trivy SARIF as artifact
-        uses: actions/upload-artifact@v7
+      - name: 📤 Upload SARIF to Security tab
+        uses: github/codeql-action/upload-sarif@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4
         if: always()
         with:
-          name: trivy-sarif
-          path: trivy-results.sarif
+          sarif_file: 'trivy-results.sarif'
+          category: ${{ matrix.category }}
 
-  trivy-scanning-configs:
-    name: 🔍 Trivy Scanner Configs
-    needs: [trivy-scanning]
+  sast:
+    name: 🛡️ SAST (${{ matrix.label }})
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: Bandit
+            tool: bandit
+          - label: Gitleaks
+            tool: gitleaks
+          - label: Hadolint
+            tool: hadolint
     steps:
       - name: 🚪 Checkout
-        uses: actions/checkout@v7
-
-      - name: 🔍 Run Trivy vulnerability scanner in IaC mode - Application
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
-          scan-type: 'config'
-          scan-ref: './build'
-          hide-progress: false
-          format: 'sarif'
-          output: 'trivy-results-application.sarif'
-          exit-code: '0'
-          ignore-unfixed: true
-          severity: 'CRITICAL,HIGH,MEDIUM'
+          fetch-depth: 0
 
-      - name: 📤 Upload Trivy scan results to GitHub Security tab - Application
-        uses: github/codeql-action/upload-sarif@v4
-        if: always()
+      - name: 🐍 Setup Python
+        if: matrix.tool == 'bandit'
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
-          sarif_file: 'trivy-results-application.sarif'
-          category: 'TrivyScanResultsApplication'
+          python-version: '3.12'
 
-      - name: 🔍 Run Trivy vulnerability scanner in IaC mode - Artifacts
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          scan-type: 'config'
-          scan-ref: './artifacts'
-          hide-progress: false
-          format: 'sarif'
-          output: 'trivy-results-artifacts.sarif'
-          exit-code: '0'
-          ignore-unfixed: true
-          severity: 'CRITICAL,HIGH,MEDIUM'
-
-      - name: 📤 Upload Trivy scan results to GitHub Security tab - Artifacts
-        uses: github/codeql-action/upload-sarif@v4
-        if: always()
-        with:
-          sarif_file: 'trivy-results-artifacts.sarif'
-          category: 'TrivyScanResultsArtifacts'
-
-  lint-python:
-    name: 🧹 Lint & Type Check Python
-    runs-on: ubuntu-latest
-    steps:
-      - name: 🚪 Checkout do repositório
-        uses: actions/checkout@v7
-
-      - name: 🐍 Configurar Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: '3.10'
-
-      - name: 📦 Instalar dependências de lint e type checking
+      - name: 🐍 Bandit (SAST)
+        if: matrix.tool == 'bandit'
         run: |
-          python -m pip install --upgrade pip
-          pip install black ruff mypy flask requests flask-httpauth werkzeug
+          pip install bandit
+          bandit -r build/ -ll --skip B101 -f sarif -o bandit-results.sarif || true
 
-      - name: 🧹 Verificar formatação com Black
-        run: black build/ --check --verbose
+      - name: 📤 Upload Bandit SARIF
+        if: matrix.tool == 'bandit'
+        uses: github/codeql-action/upload-sarif@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4
+        if: always()
+        with:
+          sarif_file: 'bandit-results.sarif'
+          category: BanditScan
 
-      - name: 🕵️ Verificar estilo com Ruff
+      - name: 🔐 Gitleaks
+        if: matrix.tool == 'gitleaks'
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GIT_PAT }}
+
+      - name: 🐳 Hadolint
+        if: matrix.tool == 'hadolint'
+        uses: hadolint/hadolint-action@2332a7b74a6de0dda2e2221d575162eba76ba5e5 # v3.3.0
+        with:
+          dockerfile: build/Dockerfile
+          failure-threshold: warning
+
+  ci:
+    name: 🧪 CI (Lint + Test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 🚪 Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+
+      - name: 📦 Install dependencies
+        run: pip install black ruff mypy flask requests flask-httpauth werkzeug pytest pip-audit bandit
+
+      - name: 🕵️ Ruff
         run: ruff check .
 
-      - name: 🔍 Verificar tipos com Mypy
+      - name: 🖤 Black
+        run: black build/ --check --verbose
+
+      - name: 🔍 Mypy
         run: mypy build/
 
-  test-python:
-    name: 🧪 Testar Providers
+      - name: 🧪 Tests
+        run: pytest -v
+
+      - name: 🔒 pip-audit
+        run: pip-audit -r build/requirements.txt
+
+  build-and-push:
+    name: 🛠️ Build & Push
+    needs: [security, sast, ci]
     runs-on: ubuntu-latest
-    steps:
-      - name: 🚪 Checkout
-        uses: actions/checkout@v7
-
-      - name: 🐍 Configurar Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: '3.10'
-
-      - name: 🧪 Rodar testes
-        run: python build/tests/test_providers.py
-
-  build-and-push-image:
-    name: 🛠️ Build and ⬆️ Push Docker Image
-    needs: [trivy-scanning-configs, lint-python, test-python]
-    runs-on: ubuntu-latest
+    timeout-minutes: 15
     outputs:
       docker_version: ${{ steps.meta.outputs.version }}
     steps:
-      - name: 🚪 Checkout Repository
-        uses: actions/checkout@v7
+      - name: 🚪 Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
-      - name: 👤 Log in to GHCR
-        uses: docker/login-action@v4
+      - name: 👤 Login GHCR
+        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GIT_PAT }}
 
-      - name: 👤 Log in to Docker Hub
-        uses: docker/login-action@v4
+      - name: 👤 Login Docker Hub
+        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4
         with:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: ⛏️ Extract metadata (tags, labels) for Docker
+      - name: ⛏️ Metadata
         id: meta
-        uses: docker/metadata-action@v6
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6
         with:
           images: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
@@ -155,37 +183,70 @@ jobs:
           tags: |
             type=semver,pattern={{version}}
 
-      - name: 👁️ Display Docker Metadata Output Version
-        run: echo "VERSION=${{ steps.meta.outputs.version }}"
+      - name: 🛠️ Build image (local)
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
+        with:
+          context: ./build
+          push: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      - name: 🛠️ Build and 📤 Push Docker image
-        uses: docker/build-push-action@v7
+      - name: 🔍 Trivy scan image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}'
+          format: 'sarif'
+          output: 'trivy-results-image.sarif'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+
+      - name: 📤 Upload image scan SARIF
+        uses: github/codeql-action/upload-sarif@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4
+        if: always()
+        with:
+          sarif_file: 'trivy-results-image.sarif'
+          category: TrivyScanImage
+
+      - name: 📤 Push image
+        id: push
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
         with:
           context: ./build
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-          cache-to: type=inline
+          cache-from: type=gha
 
-      - name: 🔍 Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@v0.36.0
+      - name: 📋 Generate SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
         with:
-          image-ref: '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}'
-          format: 'sarif'
-          output: 'trivy-results-ghcr.sarif'
-          exit-code: '0'
-          ignore-unfixed: true
-          vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH,MEDIUM'
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+          format: spdx-json
+          output-file: sbom.spdx.json
 
-      - name: 📤 Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v4
+      - name: 📤 Upload SBOM
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: always()
         with:
-          sarif_file: 'trivy-results-ghcr.sarif'
+          name: sbom
+          path: sbom.spdx.json
 
-      - name: 📢 Notificar Slack - Build
+      - name: 📝 Install Cosign
+        uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
+        continue-on-error: true
+
+      - name: ✍️ Sign image (GHCR)
+        if: success()
+        env:
+          COSIGN_EXPERIMENTAL: "1"
+        run: cosign sign ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.push.outputs.digest }}
+        continue-on-error: true
+
+      - name: 📢 Slack - Build
         if: success()
         uses: ./.github/actions/notificar-slack
         with:
@@ -199,58 +260,48 @@ jobs:
           title: "Build Realizado com Sucesso!"
 
   deploy-argocd:
-    name: ☸️ Deploy Application in ArgoCD
-    needs: [build-and-push-image]
+    name: ☸️ Deploy ArgoCD
+    needs: [build-and-push]
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     environment: production
-
     steps:
-      - name: 🔄 Checkout main
-        uses: actions/checkout@v7
+      - name: 🚪 Checkout main
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
-          ref: 'main'
+          ref: main
           token: ${{ secrets.GIT_PAT }}
 
-      - name: 👁️ Display version
-        run: echo "VERSION=${{ needs.build-and-push-image.outputs.docker_version }}"
-
-      - name: 🏷️ Atualizar tag da imagem no deployment
+      - name: 🏷️ Atualizar tag da imagem
         run: |
           set -e
 
-          VERSION="${{ needs.build-and-push-image.outputs.docker_version }}"
+          VERSION="${{ needs.build-and-push.outputs.docker_version }}"
           DEPLOYMENT="artifacts/05-sendnotify-deployment.yaml"
 
-          echo "📂 Diretório: $(pwd)"
-          echo "📄 Deployment antes:"
-          cat "$DEPLOYMENT"
-
-          echo "🛠️ Atualizando tag da imagem..."
+          echo "Atualizando para versão: ${VERSION}"
           sed -i "s#emanuelfds/sendnotify:[^\"]*#emanuelfds/sendnotify:${VERSION}#g" "$DEPLOYMENT"
-          sed -i "s#\(version: \"\)[^\"]*\(\".*\)#\1${VERSION}\2#" "$DEPLOYMENT"
-
-          echo "📄 Deployment depois:"
-          cat "$DEPLOYMENT"
+          sed -i "s#version: \"[^\"]*\"#version: \"${VERSION}\"#" "$DEPLOYMENT"
 
           if git diff --quiet; then
-            echo "🆗 Nenhuma alteração detectada, pulando commit."
+            echo "Nenhuma alteração detectada."
           else
             git config user.email "sendnotify-bot@users.noreply.github.com"
             git config user.name "sendnotify-bot"
             git add "$DEPLOYMENT"
             git commit -m "🔖 Nova versão da Aplicação: ${VERSION}"
-            git push origin main --force-with-lease
+            git push origin main
           fi
 
-      - name: 📢 Notificar Slack - Deploy
+      - name: 📢 Slack - Deploy
         if: success()
         uses: ./.github/actions/notificar-slack
         with:
           webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
-          version: ${{ needs.build-and-push-image.outputs.docker_version }}
+          version: ${{ needs.build-and-push.outputs.docker_version }}
           image: emanuelfds/sendnotify
           repo: ${{ github.repository }}
           sha: ${{ github.sha }}
-          ref: ${{ github.ref_name }}
+          ref: main
           actor: ${{ github.actor }}
           title: "Deploy Publicado com Sucesso!"

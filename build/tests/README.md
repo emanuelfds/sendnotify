@@ -3,14 +3,15 @@
 ## Como rodar os testes
 
 ```bash
-python build/tests/test_providers.py
+pytest -v
 ```
 
 ## Estrutura
 
 ```
 build/tests/
-├── test_providers.py      # Testes de detect + normalize
+├── conftest.py            # sys.path setup para imports
+├── test_providers.py      # Testes de detect + normalize (pytest)
 ├── samples/
 │   ├── oci-confirmation.json
 │   ├── oci-firing.json
@@ -25,11 +26,16 @@ build/tests/
 
 ## O que os testes cobrem
 
-| Teste               | Descrição                                                      |
-| ------------------- | -------------------------------------------------------------- |
-| `test_detect()`     | Verifica se cada payload é detectado como o provider correto   |
-| `test_normalize()`  | Verifica se `status` e `confirmation_url` são extraídos corretamente |
-| `test_unknown()`    | Garante que payloads desconhecidos retornam `None`             |
+| Teste                          | Descrição                                                      |
+| ------------------------------ | -------------------------------------------------------------- |
+| `test_detect[*.json]`         | Verifica se cada payload é detectado como o provider correto   |
+| `test_normalize[*.json]`      | Verifica se `status` e `confirmation_url` são extraídos corretamente |
+| `test_unknown_payload`        | Garante que payloads desconhecidos retornam `None`             |
+
+Edge cases testados:
+- OCI com `alarmMetaData` vazia → não crasha (IndexError prevenido)
+- OCI sem `alarmMetaData` → retorna `None` (não detectado como OCI)
+- AWS com `Message` stringificado → `json.loads()` automático
 
 ## Lint & Type Check (manual)
 
@@ -75,4 +81,4 @@ git commit -m "sua mensagem"
 
 - Todos os hooks de Python estão limitados a `^build/` (ignora arquivos fora do projeto)
 - MyPy usa `additional_dependencies` para encontrar `requests`, `flask`, etc.
-- Config detalhada está em `pyproject.toml` (Black, Ruff, MyPy)
+- Config detalhada está em `pyproject.toml` (Black, Ruff, MyPy, Pytest)

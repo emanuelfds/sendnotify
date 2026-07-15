@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 import logging
 import os
 
@@ -5,10 +6,13 @@ import providers
 import requests
 from flask import Flask, jsonify, request
 from flask_httpauth import HTTPBasicAuth
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from werkzeug.security import check_password_hash, generate_password_hash
 
 app = Flask(__name__)
 auth = HTTPBasicAuth()
+limiter = Limiter(get_remote_address, app=app, default_limits=["10/minute"])
 
 users: dict[str, str] = {}
 
@@ -23,7 +27,7 @@ def load_users():
 def validate_env():
     missing = [v for v in ("WEBHOOK", "AUTH_USER", "AUTH_PASS") if not os.environ.get(v)]
     if missing:
-        logging.warning("Variáveis de ambiente ausentes: %s", ", ".join(missing))
+        raise SystemExit(f"Variáveis obrigatórias ausentes: {', '.join(missing)}")
 
 
 validate_env()
@@ -44,12 +48,14 @@ def unauthorized():
 
 @app.before_request
 def log_request_info():
-    app.logger.debug(f"Headers: {request.headers}")
+    safe_headers = {k: v for k, v in request.headers if k.lower() != "authorization"}
+    app.logger.debug(f"Headers: {safe_headers}")
     app.logger.debug(f"Body: {request.get_data()}")
 
 
 @app.route("/subscription", methods=["POST"])
 @auth.login_required
+@limiter.limit("10/minute")
 def subscription():
     if not request.is_json:
         app.logger.error("Recebido JSON inválido")
@@ -128,6 +134,7 @@ def subscription():
 
 @app.route("/send", methods=["POST"])
 @auth.login_required
+@limiter.limit("10/minute")
 def send():
     data = request.get_json()
     if not data or "text" not in data:
@@ -159,4 +166,5 @@ def health():
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
-    app.run(port=8080, debug=True, host="0.0.0.0")
+    debug = os.environ.get("FLASK_DEBUG", "false").lower() == "true"
+    app.run(port=8080, debug=debug, host="0.0.0.0")

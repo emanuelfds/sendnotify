@@ -12,7 +12,7 @@ spec:
     metadata:
       labels:
         app: sendnotify
-        version: "1.2.1"
+        version: "1.2.2"
     spec:
       serviceAccountName: sa-sendnotify
       securityContext:
@@ -32,8 +32,8 @@ spec:
                 - services
       containers:
       - name: sendnotify
-        image: emanuelfds/sendnotify:1.2.1
-        imagePullPolicy: Always
+        image: emanuelfds/sendnotify:1.2.2
+        imagePullPolicy: IfNotPresent
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -41,7 +41,7 @@ spec:
         command:
           - "gunicorn"
           - "-w"
-          - "1"
+          - "2"
           - "-b"
           - "0.0.0.0:8080"
           - "wsgi:app"
@@ -63,6 +63,12 @@ spec:
             name: s-sendnotify
         - configMapRef:
             name: cm-sendnotify
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          failureThreshold: 30
+          periodSeconds: 2
         livenessProbe:
           httpGet:
             path: /health

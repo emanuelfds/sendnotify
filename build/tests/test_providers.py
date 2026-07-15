@@ -1,88 +1,64 @@
-#!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
 import json
-import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-import providers
+import pytest
+from providers import detect, normalize
+
+SAMPLES = Path(__file__).parent / "samples"
 
 
 def load(name):
-    path = Path(__file__).parent / "samples" / name
-    with open(path) as f:
+    with open(SAMPLES / name) as f:
         return json.load(f)
 
 
-def test_detect():
-    cases = [
-        ("oci-confirmation.json", "oci"),
-        ("oci-firing.json", "oci"),
-        ("oci-resolved.json", "oci"),
-        ("aws-confirmation.json", "aws"),
-        ("aws-firing.json", "aws"),
-        ("aws-resolved.json", "aws"),
-        ("azure-firing.json", "azure"),
-        ("azure-resolved.json", "azure"),
-    ]
-    for file, expected in cases:
-        data = load(file)
-        result = providers.detect(data)
-        status = "✓" if result == expected else "✗"
-        print(f"  {status} {file:30s} → {result or 'None':10s} (expected {expected})")
+# --- detect ---
+
+DETECT_CASES = [
+    ("oci-confirmation.json", "oci"),
+    ("oci-firing.json", "oci"),
+    ("oci-resolved.json", "oci"),
+    ("aws-confirmation.json", "aws"),
+    ("aws-firing.json", "aws"),
+    ("aws-resolved.json", "aws"),
+    ("azure-firing.json", "azure"),
+    ("azure-resolved.json", "azure"),
+]
 
 
-def test_normalize():
-    cases = [
-        ("oci-confirmation.json", "confirmation_url", True),
-        ("oci-firing.json", "status", "FIRING"),
-        ("oci-resolved.json", "status", "RESOLVED"),
-        ("aws-confirmation.json", "confirmation_url", True),
-        ("aws-firing.json", "status", "FIRING"),
-        ("aws-resolved.json", "status", "RESOLVED"),
-        ("azure-firing.json", "status", "FIRING"),
-        ("azure-resolved.json", "status", "RESOLVED"),
-    ]
-    all_ok = True
-    for file, field, expected in cases:
-        data = load(file)
-        result = providers.normalize(data)
-        if result is None:
-            print(f"  ✗ {file:30s} → normalize returned None")
-            all_ok = False
-            continue
-        got = result.get(field)
-        if expected is True:
-            ok = bool(got)
-        else:
-            ok = got == expected
-        if not ok:
-            all_ok = False
-        status = "✓" if ok else "✗"
-        extra = f" ({got})" if not ok else ""
-        print(f"  {status} {file:30s} → {field}={got}{extra}")
-    return all_ok
+@pytest.mark.parametrize("filename,expected", DETECT_CASES, ids=[c[0] for c in DETECT_CASES])
+def test_detect(filename, expected):
+    assert detect(load(filename)) == expected
 
 
-def test_unknown():
-    result = providers.normalize({"foo": "bar"})
-    ok = result is None
-    print(f"  {'✓' if ok else '✗'} unknown payload        → {'None (correct)' if ok else result}")
-    return ok
+# --- normalize ---
+
+NORMALIZE_CASES = [
+    ("oci-confirmation.json", "confirmation_url", True),
+    ("oci-firing.json", "status", "FIRING"),
+    ("oci-resolved.json", "status", "RESOLVED"),
+    ("aws-confirmation.json", "confirmation_url", True),
+    ("aws-firing.json", "status", "FIRING"),
+    ("aws-resolved.json", "status", "RESOLVED"),
+    ("azure-firing.json", "status", "FIRING"),
+    ("azure-resolved.json", "status", "RESOLVED"),
+]
 
 
-def main():
-    print("\n=== Detect ===")
-    test_detect()
-
-    print("\n=== Normalize ===")
-    ok = test_normalize()
-
-    print("\n=== Unknown ===")
-    ok = test_unknown() and ok
-
-    print(f"\n{'→ Todos os testes passaram!' if ok else '→ Alguns testes falharam!'}")
-    return 0 if ok else 1
+@pytest.mark.parametrize("filename,field,expected", NORMALIZE_CASES, ids=[c[0] for c in NORMALIZE_CASES])
+def test_normalize(filename, field, expected):
+    result = normalize(load(filename))
+    assert result is not None, f"normalize returned None for {filename}"
+    got = result.get(field)
+    if expected is True:
+        assert bool(got), f"{filename}: {field} is falsy"
+    else:
+        assert got == expected, f"{filename}: {field}={got}, expected {expected}"
 
 
-if __name__ == "__main__":
-    sys.exit(main())
+# --- unknown payload ---
+
+
+def test_unknown_payload():
+    assert normalize({"foo": "bar"}) is None
