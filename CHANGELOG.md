@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.6](https://github.com/emanuelfds/sendnotify/compare/v1.2.5...v1.2.6) (2026-07-16)
+
+
+### Bug Fixes
+
+* Trivy table+SARIF without blocking, ZAP spider limits ([35fccab](https://github.com/emanuelfds/sendnotify/commit/35fccab1ab1dc997dd28c4693e2a36ffbbd94b74))
+
 ## [1.2.5](https://github.com/emanuelfds/sendnotify/compare/v1.2.4...v1.2.5) (2026-07-16)
 
 
