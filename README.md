@@ -19,6 +19,7 @@
 [![Bandit](https://img.shields.io/badge/Bandit-SAST-yellow?logo=python&logoColor=white)](https://bandit.readthedocs.io)
 [![Gitleaks](https://img.shields.io/badge/Gitleaks-Secrets-orange?logo=gitguardian&logoColor=white)](https://github.com/gitleaks/gitleaks)
 [![Hadolint](https://img.shields.io/badge/Hadolint-Dockerfile-blue?logo=docker&logoColor=white)](https://github.com/hadolint/hadolint)
+[![OWASP ZAP](https://img.shields.io/badge/OWASP_ZAP-DAST-red?logo=owasp&logoColor=white)](https://www.zaproxy.org)
 
 # 📨 SendNotify
 
@@ -95,6 +96,7 @@ A aplicação **detecta automaticamente** qual nuvem enviou o alerta, normaliza 
 | Secret Scanning (Gitleaks) | ✅ |
 | Dockerfile Lint (Hadolint) | ✅ |
 | Dependency Audit (pip-audit) | ✅ |
+| DAST (OWASP ZAP) | ✅ |
 | Testes offline com mocks | ✅ |
 | Pronto para Docker | ✅ |
 
@@ -117,6 +119,7 @@ O pipeline de CI/CD utiliza múltiplas ferramentas de segurança:
 | **Gitleaks** | Secret Scanning | Chaves, tokens, senhas no histórico git |
 | **Hadolint** | Dockerfile Lint | Boas práticas de segurança em Dockerfiles |
 | **pip-audit** | Dependency Audit | CVEs known em pacotes Python |
+| **OWASP ZAP** | DAST (Dynamic) | XSS, SQL Injection, headers de segurança, cookies |
 | **SBOM** | Software Bill of Materials | Lista completa de dependências |
 | **Cosign** | Image Signing | Assinatura criptográfica da imagem Docker |
 
@@ -127,6 +130,7 @@ Jobs:
   security     → Trivy (repo, app, k8s)
   sast         → Bandit + Gitleaks + Hadolint
   ci           → Ruff, Black, Mypy, Pytest, pip-audit
+  dast         → OWASP ZAP Baseline Scan (app rodando em Docker)
   build-and-push → Build, Trivy image, SBOM, Cosign
   deploy-argocd → Deploy ArgoCD (environment: production)
 ```
@@ -149,6 +153,13 @@ hadolint build/Dockerfile
 # pip-audit (Dependency Audit)
 pip install pip-audit
 pip-audit -r build/requirements.txt
+
+# OWASP ZAP (DAST)
+# Requer Docker: https://www.zaproxy.org/docs/docker/
+docker run -u zap -p 8080:8080 -p 8090:8090 \
+  -v $(pwd):/zap/wrk/:rw \
+  ghcr.io/zaproxy/zaproxy:stable \
+  zap-full-scan.py -t http://host.docker.internal:8080 -r report.html
 ```
 
 <div align="right">

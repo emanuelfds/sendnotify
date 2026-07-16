@@ -1,0 +1,16 @@
+RULE ID	WARN- ACTION
+10015	IGNORE	Re-examine TLS certificates
+10020	WARN	X-Frame-Options header missing
+10021	WARN	X-Content-Type-Options header missing
+10023	WARN	Information Disclosure - Debug Messages
+10026	WARN	Information Disclosure - Internal Error
+10027	WARN	Information Disclosure - Debug Error Messages
+10035	WARN	Content Security Policy header missing
+10036	WARN	Server Leaks Information via Server header
+10037	WARN	Server Leaks Information via X-Powered-By header
+10040	WARN	Cookie without SameSite attribute
+10050	WARN	Cross-Site Scripting (Reflected)
+10054	WARN	Cross-Site Scripting (Persistent)
+10055	WARN	SQL Injection
+10098	WARN	Remote Code Execution - Shell Shock
+10105	WARN	Remote OS Command Injection

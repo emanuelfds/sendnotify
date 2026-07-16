@@ -149,6 +149,61 @@ jobs:
       - name: 🔒 pip-audit
         run: pip-audit -r build/requirements.txt
 
+  dast:
+    name: 🎯 DAST (OWASP ZAP)
+    needs: [ci]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: 🚪 Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+      - name: 🐳 Build image
+        run: docker build -t sendnotify:dast ./build
+
+      - name: ▶️ Start SendNotify
+        run: |
+          docker run -d --name sendnotify \
+            -p 5000:8080 \
+            -e AUTH_USER=admin \
+            -e AUTH_PASS=test123 \
+            -e GOOGLE_CHAT_WEBHOOK_URL=https://hooks.chat.googleapis.com/test \
+            sendnotify:dast
+
+      - name: ⏳ Wait for health
+        run: |
+          echo "Aguardando SendNotify iniciar..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:5000/health > /dev/null 2>&1; then
+              echo "SendNotify pronto na tentativa $i"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "SendNotify não iniciou em 60s"
+          docker logs sendnotify
+          exit 1
+
+      - name: 🎯 ZAP Baseline Scan
+        uses: zaproxy/action-baseline-scan@0377fad5846c1e0e02f4b5d8e9ea7ef29b1d9787 # v0.14.0
+        with:
+          target: http://localhost:5000
+          rules_file_name: '.zap/rules.tsv'
+          cmd_options: '-a -j'
+          fail_action: true # true - bloquear deploy em findings críticos
+
+      - name: 📤 Upload ZAP report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: zap-report
+          path: report_html.html
+          if-no-files-found: warn
+
+      - name: 🛑 Stop SendNotify
+        if: always()
+        run: docker stop sendnotify || true
+
   build-and-push:
     name: 🛠️ Build & Push
     needs: [security, sast, ci]
