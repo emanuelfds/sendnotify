@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.3](https://github.com/emanuelfds/sendnotify/compare/v1.2.2...v1.2.3) (2026-07-16)
+
+
+### Bug Fixes
+
+* adiciona startupProbe, PDB, cosign, SBOM e migra testes para pytest ([7f5311f](https://github.com/emanuelfds/sendnotify/commit/7f5311f7b34e02caa95a7ceb9157b5734317b345))
+* resolve duplicate 'if' condition in Bandit SARIF upload step ([70a3c8f](https://github.com/emanuelfds/sendnotify/commit/70a3c8fd68e152480ed65b3305659c2bab15de5c))
+
 ## [1.2.2](https://github.com/emanuelfds/sendnotify/compare/v1.2.1...v1.2.2) (2026-07-14)
 
 
