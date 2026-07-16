@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.4](https://github.com/emanuelfds/sendnotify/compare/v1.2.3...v1.2.4) (2026-07-16)
+
+
+### Bug Fixes
+
+* correct ZAP action repo name and add Bandit SARIF fallback ([fed4b63](https://github.com/emanuelfds/sendnotify/commit/fed4b63b11e38f24461cfb43c55137b1508fc543))
+
 ## [1.2.3](https://github.com/emanuelfds/sendnotify/compare/v1.2.2...v1.2.3) (2026-07-16)
 
 
