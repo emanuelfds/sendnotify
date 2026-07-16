@@ -168,7 +168,7 @@ jobs:
             -p 5000:8080 \
             -e AUTH_USER=admin \
             -e AUTH_PASS=test123 \
-            -e GOOGLE_CHAT_WEBHOOK_URL=https://hooks.chat.googleapis.com/test \
+            -e WEBHOOK=https://hooks.chat.googleapis.com/test \
             sendnotify:dast
 
       - name: ⏳ Wait for health
