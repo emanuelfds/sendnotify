@@ -12,9 +12,17 @@ jobs:
   release-please:
     name: 🔖 Create Release
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: release-please
         id: release
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5
+        continue-on-error: true
+        with:
+          token: ${{ secrets.GIT_PAT }}
+
+      - name: 🔄 Retry release-please (transient error recovery)
+        if: steps.release.outcome == 'failure'
         uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5
         with:
           token: ${{ secrets.GIT_PAT }}
