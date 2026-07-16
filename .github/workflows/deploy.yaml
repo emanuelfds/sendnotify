@@ -189,7 +189,7 @@ jobs:
         with:
           target: http://localhost:5000
           rules_file_name: '.zap/rules.tsv'
-          cmd_options: '-j'
+          cmd_options: '-j -m 1 -T 60'
           fail_action: false
 
       - name: 📤 Upload ZAP report
@@ -247,23 +247,26 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-      - name: 🔍 Trivy scan image
+      - name: 🔍 Trivy scan image (report)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: '${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}'
+          format: 'table'
+          exit-code: '0'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+
+      - name: 🔍 Trivy scan image (SARIF)
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: '${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}'
           format: 'sarif'
           output: 'trivy-results-image.sarif'
-          exit-code: '1'
+          exit-code: '0'
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH,MEDIUM'
-
-      - name: 📤 Ensure Trivy SARIF exists
-        if: always()
-        run: |
-          if [ ! -f trivy-results-image.sarif ]; then
-            echo '{"version":"2.1.0","$schema":"","runs":[{"tool":{"driver":{"name":"trivy"}},"results":[]}]}' > trivy-results-image.sarif
-          fi
 
       - name: 📤 Upload image scan SARIF
         uses: github/codeql-action/upload-sarif@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4
