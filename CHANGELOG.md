@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.5](https://github.com/emanuelfds/sendnotify/compare/v1.2.4...v1.2.5) (2026-07-16)
+
+
+### Bug Fixes
+
+* remove ZAP active scan, fix Trivy image ref and add SARIF fallback ([746e21e](https://github.com/emanuelfds/sendnotify/commit/746e21e07a4ece181afccc08c49d024a6d8dc4c8))
+
 ## [1.2.4](https://github.com/emanuelfds/sendnotify/compare/v1.2.3...v1.2.4) (2026-07-16)
 
 
