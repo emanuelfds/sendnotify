@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.10](https://github.com/emanuelfds/sendnotify/compare/v1.2.9...v1.2.10) (2026-07-17)
+
+
+### Bug Fixes
+
+* **ci:** add -X POST to DAST auth checks for /send ([1473460](https://github.com/emanuelfds/sendnotify/commit/147346054f58940f4af63e5b38c8974c2a2cc5fc))
+* **security:** add security headers and fix DAST curl -f flag ([fea5807](https://github.com/emanuelfds/sendnotify/commit/fea58079c41cc948fe3d3fe6ac203be54dc32985))
+
 ## [1.2.9](https://github.com/emanuelfds/sendnotify/compare/v1.2.8...v1.2.9) (2026-07-17)
 
 
