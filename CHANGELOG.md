@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.8](https://github.com/emanuelfds/sendnotify/compare/v1.2.7...v1.2.8) (2026-07-17)
+
+
+### Bug Fixes
+
+* DAST ZAP network, Trivy cache and Hadolint DL3013 ([9554389](https://github.com/emanuelfds/sendnotify/commit/95543894ec60316a97b29f61f997a3834d7e4fab))
+
 ## [1.2.7](https://github.com/emanuelfds/sendnotify/compare/v1.2.6...v1.2.7) (2026-07-17)
 
 
