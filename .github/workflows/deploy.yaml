@@ -190,9 +190,8 @@ jobs:
         with:
           target: http://localhost:5000
           rules_file_name: '.zap/rules.tsv'
-          cmd_options: '-j -m 1 -T 60'
+          cmd_options: '-m 1 -T 60'
           fail_action: false
-          network: host
 
       - name: 📤 Upload ZAP report
         if: always()
