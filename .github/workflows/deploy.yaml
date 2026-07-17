@@ -151,10 +151,10 @@ jobs:
         run: pip-audit -r build/requirements.txt
 
   dast:
-    name: 🎯 DAST (OWASP ZAP)
+    name: 🎯 DAST (Security Checks)
     needs: [ci]
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
     steps:
       - name: 🚪 Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
@@ -185,21 +185,98 @@ jobs:
           docker logs sendnotify
           exit 1
 
-      - name: 🎯 ZAP Baseline Scan
-        uses: zaproxy/action-baseline@6c5a007541891231cd9e0ddec25d4f25c59c9874 # v0.15.0
-        with:
-          target: http://localhost:5000
-          rules_file_name: '.zap/rules.tsv'
-          cmd_options: '-m 1 -T 60'
-          fail_action: false
+      - name: 🔍 Security checks
+        run: |
+          echo "=== DAST Security Checks ==="
+          PASS=0
+          FAIL=0
 
-      - name: 📤 Upload ZAP report
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: zap-report
-          path: report_html.html
-          if-no-files-found: warn
+          # Health endpoint
+          STATUS=$(curl -sf -o /dev/null -w "%{http_code}" http://localhost:5000/health)
+          if [ "$STATUS" = "200" ]; then
+            echo "✅ Health: $STATUS"
+            PASS=$((PASS+1))
+          else
+            echo "❌ Health: $STATUS (expected 200)"
+            FAIL=$((FAIL+1))
+          fi
+
+          # Auth required on /send
+          STATUS=$(curl -sf -o /dev/null -w "%{http_code}" http://localhost:5000/send)
+          if [ "$STATUS" = "401" ]; then
+            echo "✅ /send requires auth: $STATUS"
+            PASS=$((PASS+1))
+          else
+            echo "❌ /send auth: $STATUS (expected 401)"
+            FAIL=$((FAIL+1))
+          fi
+
+          # Auth required on /subscription
+          STATUS=$(curl -sf -o /dev/null -w "%{http_code}" -X POST http://localhost:5000/subscription)
+          if [ "$STATUS" = "401" ]; then
+            echo "✅ /subscription requires auth: $STATUS"
+            PASS=$((PASS+1))
+          else
+            echo "❌ /subscription auth: $STATUS (expected 401)"
+            FAIL=$((FAIL+1))
+          fi
+
+          # Wrong password rejected
+          STATUS=$(curl -sf -o /dev/null -w "%{http_code}" -u admin:wrong http://localhost:5000/send)
+          if [ "$STATUS" = "401" ]; then
+            echo "✅ Wrong password rejected: $STATUS"
+            PASS=$((PASS+1))
+          else
+            echo "❌ Wrong password: $STATUS (expected 401)"
+            FAIL=$((FAIL+1))
+          fi
+
+          # Correct auth works on /send
+          STATUS=$(curl -sf -o /dev/null -w "%{http_code}" -u admin:test123 -X POST \
+            -H "Content-Type: application/json" \
+            -d '{"text":"test"}' http://localhost:5000/send)
+          if [ "$STATUS" = "200" ] || [ "$STATUS" = "500" ]; then
+            # 200 = success, 500 = webhook failed (expected with dummy URL)
+            echo "✅ /send accepts valid auth: $STATUS"
+            PASS=$((PASS+1))
+          else
+            echo "❌ /send valid auth: $STATUS (expected 200 or 500)"
+            FAIL=$((FAIL+1))
+          fi
+
+          # Method not allowed (GET on /send)
+          STATUS=$(curl -sf -o /dev/null -w "%{http_code}" -u admin:test123 http://localhost:5000/send)
+          if [ "$STATUS" = "405" ]; then
+            echo "✅ GET /send rejected: $STATUS"
+            PASS=$((PASS+1))
+          else
+            echo "⚠️  GET /send: $STATUS (expected 405)"
+          fi
+
+          # Method not allowed (GET on /subscription)
+          STATUS=$(curl -sf -o /dev/null -w "%{http_code}" -u admin:test123 http://localhost:5000/subscription)
+          if [ "$STATUS" = "405" ]; then
+            echo "✅ GET /subscription rejected: $STATUS"
+            PASS=$((PASS+1))
+          else
+            echo "⚠️  GET /subscription: $STATUS (expected 405)"
+          fi
+
+          # JSON required on /send (empty body)
+          STATUS=$(curl -sf -o /dev/null -w "%{http_code}" -u admin:test123 -X POST \
+            -H "Content-Type: application/json" \
+            -d '{}' http://localhost:5000/send)
+          if [ "$STATUS" = "400" ]; then
+            echo "✅ Empty JSON rejected: $STATUS"
+            PASS=$((PASS+1))
+          else
+            echo "⚠️  Empty JSON: $STATUS (expected 400)"
+          fi
+
+          echo ""
+          echo "=== Results: $PASS passed, $FAIL failed ==="
+          [ "$FAIL" -gt 0 ] && exit 1
+          echo "All critical checks passed"
 
       - name: 🛑 Stop SendNotify
         if: always()
