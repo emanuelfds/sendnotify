@@ -192,6 +192,7 @@ jobs:
           rules_file_name: '.zap/rules.tsv'
           cmd_options: '-j -m 1 -T 60'
           fail_action: false
+          network: host
 
       - name: 📤 Upload ZAP report
         if: always()
@@ -257,6 +258,7 @@ jobs:
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH,MEDIUM'
+          cache: false
 
       - name: 🔍 Trivy scan image (SARIF)
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
@@ -268,6 +270,7 @@ jobs:
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH,MEDIUM'
+          cache: false
 
       - name: 📤 Upload image scan SARIF
         uses: github/codeql-action/upload-sarif@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4
