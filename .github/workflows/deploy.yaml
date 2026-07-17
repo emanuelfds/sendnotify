@@ -204,7 +204,7 @@ jobs:
           fi
 
           # Auth required on /send
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/send)
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:5000/send)
           if [ "$STATUS" = "401" ]; then
             echo "✅ /send requires auth: $STATUS"
             PASS=$((PASS+1))
@@ -224,7 +224,7 @@ jobs:
           fi
 
           # Wrong password rejected
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -u admin:wrong http://localhost:5000/send)
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST -u admin:wrong http://localhost:5000/send)
           if [ "$STATUS" = "401" ]; then
             echo "✅ Wrong password rejected: $STATUS"
             PASS=$((PASS+1))
