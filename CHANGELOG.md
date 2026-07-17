@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.2.7](https://github.com/emanuelfds/sendnotify/compare/v1.2.6...v1.2.7) (2026-07-17)
+
+
+### Bug Fixes
+
+* add id-token write permission for Cosign keyless signing ([117540f](https://github.com/emanuelfds/sendnotify/commit/117540f81955a8b130a42e4ccbbbd65aabf0f2a1))
+* add release-please retry for transient GitHub API errors ([a8e3629](https://github.com/emanuelfds/sendnotify/commit/a8e362995b45dcaccd5c6b76f5679becc5dca9df))
+* revert to GIT_PAT for release-please (test transient error) ([849da4e](https://github.com/emanuelfds/sendnotify/commit/849da4e12909abf7479db12ae2706279059814b4))
+* upgrade pip in Dockerfile to resolve 4 MEDIUM CVEs ([8b76147](https://github.com/emanuelfds/sendnotify/commit/8b761471473b8345cccbeea89a00e7e73589d3ad))
+* use correct WEBHOOK env var in DAST job ([a58508e](https://github.com/emanuelfds/sendnotify/commit/a58508e0d56ba38166c893c8811cfd7ccf04d3f2))
+* use GITHUB_TOKEN for release-please authentication ([953fc31](https://github.com/emanuelfds/sendnotify/commit/953fc317e6f08404ca27b5358af066df0a900403))
+
 ## [1.2.6](https://github.com/emanuelfds/sendnotify/compare/v1.2.5...v1.2.6) (2026-07-16)
 
 
