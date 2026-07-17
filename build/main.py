@@ -53,6 +53,15 @@ def log_request_info():
     app.logger.debug(f"Body: {request.get_data()}")
 
 
+@app.after_request
+def set_security_headers(response):
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 @app.route("/subscription", methods=["POST"])
 @auth.login_required
 @limiter.limit("10/minute")

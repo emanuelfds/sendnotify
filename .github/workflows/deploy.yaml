@@ -191,8 +191,10 @@ jobs:
           PASS=0
           FAIL=0
 
+          # --- Auth & Access Control ---
+
           # Health endpoint
-          STATUS=$(curl -sf -o /dev/null -w "%{http_code}" http://localhost:5000/health)
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/health)
           if [ "$STATUS" = "200" ]; then
             echo "✅ Health: $STATUS"
             PASS=$((PASS+1))
@@ -202,7 +204,7 @@ jobs:
           fi
 
           # Auth required on /send
-          STATUS=$(curl -sf -o /dev/null -w "%{http_code}" http://localhost:5000/send)
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/send)
           if [ "$STATUS" = "401" ]; then
             echo "✅ /send requires auth: $STATUS"
             PASS=$((PASS+1))
@@ -212,7 +214,7 @@ jobs:
           fi
 
           # Auth required on /subscription
-          STATUS=$(curl -sf -o /dev/null -w "%{http_code}" -X POST http://localhost:5000/subscription)
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:5000/subscription)
           if [ "$STATUS" = "401" ]; then
             echo "✅ /subscription requires auth: $STATUS"
             PASS=$((PASS+1))
@@ -222,7 +224,7 @@ jobs:
           fi
 
           # Wrong password rejected
-          STATUS=$(curl -sf -o /dev/null -w "%{http_code}" -u admin:wrong http://localhost:5000/send)
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -u admin:wrong http://localhost:5000/send)
           if [ "$STATUS" = "401" ]; then
             echo "✅ Wrong password rejected: $STATUS"
             PASS=$((PASS+1))
@@ -232,11 +234,10 @@ jobs:
           fi
 
           # Correct auth works on /send
-          STATUS=$(curl -sf -o /dev/null -w "%{http_code}" -u admin:test123 -X POST \
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -u admin:test123 -X POST \
             -H "Content-Type: application/json" \
             -d '{"text":"test"}' http://localhost:5000/send)
           if [ "$STATUS" = "200" ] || [ "$STATUS" = "500" ]; then
-            # 200 = success, 500 = webhook failed (expected with dummy URL)
             echo "✅ /send accepts valid auth: $STATUS"
             PASS=$((PASS+1))
           else
@@ -245,7 +246,7 @@ jobs:
           fi
 
           # Method not allowed (GET on /send)
-          STATUS=$(curl -sf -o /dev/null -w "%{http_code}" -u admin:test123 http://localhost:5000/send)
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -u admin:test123 http://localhost:5000/send)
           if [ "$STATUS" = "405" ]; then
             echo "✅ GET /send rejected: $STATUS"
             PASS=$((PASS+1))
@@ -254,7 +255,7 @@ jobs:
           fi
 
           # Method not allowed (GET on /subscription)
-          STATUS=$(curl -sf -o /dev/null -w "%{http_code}" -u admin:test123 http://localhost:5000/subscription)
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -u admin:test123 http://localhost:5000/subscription)
           if [ "$STATUS" = "405" ]; then
             echo "✅ GET /subscription rejected: $STATUS"
             PASS=$((PASS+1))
@@ -263,7 +264,7 @@ jobs:
           fi
 
           # JSON required on /send (empty body)
-          STATUS=$(curl -sf -o /dev/null -w "%{http_code}" -u admin:test123 -X POST \
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -u admin:test123 -X POST \
             -H "Content-Type: application/json" \
             -d '{}' http://localhost:5000/send)
           if [ "$STATUS" = "400" ]; then
@@ -272,6 +273,83 @@ jobs:
           else
             echo "⚠️  Empty JSON: $STATUS (expected 400)"
           fi
+
+          # --- Security Headers ---
+
+          HEADERS=$(curl -sI http://localhost:5000/health)
+
+          # X-Content-Type-Options: prevents MIME sniffing
+          if echo "$HEADERS" | grep -qi "x-content-type-options"; then
+            echo "✅ X-Content-Type-Options present"
+            PASS=$((PASS+1))
+          else
+            echo "❌ X-Content-Type-Options MISSING (vulnerability: MIME sniffing)"
+            FAIL=$((FAIL+1))
+          fi
+
+          # X-Frame-Options: prevents clickjacking
+          if echo "$HEADERS" | grep -qi "x-frame-options"; then
+            echo "✅ X-Frame-Options present"
+            PASS=$((PASS+1))
+          else
+            echo "❌ X-Frame-Options MISSING (vulnerability: clickjacking)"
+            FAIL=$((FAIL+1))
+          fi
+
+          # Referrer-Policy: controls referrer leakage
+          if echo "$HEADERS" | grep -qi "referrer-policy"; then
+            echo "✅ Referrer-Policy present"
+            PASS=$((PASS+1))
+          else
+            echo "⚠️  Referrer-Policy MISSING"
+          fi
+
+          # Cache-Control: sensitive data should not be cached
+          if echo "$HEADERS" | grep -qi "cache-control"; then
+            echo "✅ Cache-Control present"
+            PASS=$((PASS+1))
+          else
+            echo "⚠️  Cache-Control MISSING"
+          fi
+
+          # Content-Type should be application/json
+          if echo "$HEADERS" | grep -qi "content-type:.*application/json"; then
+            echo "✅ Content-Type: application/json"
+            PASS=$((PASS+1))
+          else
+            echo "⚠️  Content-Type not JSON"
+          fi
+
+          # Server header should not leak implementation details
+          if echo "$HEADERS" | grep -qi "^server:"; then
+            echo "⚠️  Server header leaks implementation info"
+          else
+            echo "✅ No Server header (info leak prevented)"
+            PASS=$((PASS+1))
+          fi
+
+          # --- Rate Limiting ---
+
+          echo ""
+          echo "--- Rate limiting test (6 rapid requests) ---"
+          BLOCKED=0
+          for i in $(seq 1 6); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" -u admin:test123 -X POST \
+              -H "Content-Type: application/json" \
+              -d '{"text":"rate test"}' http://localhost:5000/send)
+            if [ "$STATUS" = "429" ]; then
+              BLOCKED=1
+              break
+            fi
+          done
+          if [ "$BLOCKED" = "1" ]; then
+            echo "✅ Rate limiting active (429 received)"
+            PASS=$((PASS+1))
+          else
+            echo "⚠️  Rate limiting: 6 requests allowed (check default 10/min limit)"
+          fi
+
+          # --- Summary ---
 
           echo ""
           echo "=== Results: $PASS passed, $FAIL failed ==="
