@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.9](https://github.com/emanuelfds/sendnotify/compare/v1.2.8...v1.2.9) (2026-07-17)
+
+
+### Bug Fixes
+
+* remove invalid ZAP flags -j and network for baseline scan ([9f0e71d](https://github.com/emanuelfds/sendnotify/commit/9f0e71d6dcd8dc813f6607056d5ebca1067155d1))
+
 ## [1.2.8](https://github.com/emanuelfds/sendnotify/compare/v1.2.7...v1.2.8) (2026-07-17)
 
 
